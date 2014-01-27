@@ -127,3 +127,8 @@ Improvement needed:
   - more test case.
   - grapheme-compose support, and affect in utf8.reverse and utf8.width
   - Unicode normalize algorithm implement.
+
+
+License:
+
+  It use same license with Lua: http://www.lua.org/license.html
