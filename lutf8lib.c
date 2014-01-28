@@ -472,7 +472,7 @@ static int Lutf8_remove(lua_State *L) {
   return 1;
 }
 
-static int Lutf8_advance(lua_State *L) {
+static int Lutf8_next(lua_State *L) {
   const char *e, *s = check_utf8(L, 1, &e);
   int offset = luaL_optinteger(L, 2, 0);
   const char *cur = s;
@@ -1162,7 +1162,7 @@ LUALIB_API int luaopen_utf8(lua_State *L) {
     ENTRY(escape),
     ENTRY(insert),
     ENTRY(remove),
-    ENTRY(advance),
+    ENTRY(next),
     ENTRY(width),
     ENTRY(ncasecmp),
     ENTRY(find),
@@ -1182,6 +1182,6 @@ LUALIB_API int luaopen_utf8(lua_State *L) {
 
   return 1;
 }
-/* cc: flags+='-s -O2 -mdll -DLUA_BUILD_AS_DLL -ID:/luajit/include'
- * cc: libs+='D:/luajit/lua51.dll' output='utf8.dll'
- * cc: run='luajit.exe test.lua' */
+/* cc: flags+='-s -O2 -mdll -DLUA_BUILD_AS_DLL'
+ * cc: libs+='-llua52.dll' output='utf8.dll'
+ * cc: run='lua.exe test.lua' */

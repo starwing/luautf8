@@ -79,10 +79,10 @@ utf8.escape(str) -> utf8 string
       print(u"%%123%?%d%%u")
 
 
-utf8.advance(s[[, charpos], offset]) -> charpos, code point
+utf8.next(s[[, charpos], offset]) -> charpos, code point
     convert UTF-8 position to byte offset.
     If only s is given, it can used as a iterator:
-      for pos, code in utf8.advance, "utf8-string" do
+      for pos, code in utf8.next, "utf8-string" do
          -- ...
       end
     if only offset is given, return byte offset of this UTF-8 char index.
