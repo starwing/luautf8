@@ -42,11 +42,11 @@ assert(utf8.remove("abcdef", -100) == "")
 assert(utf8.remove("abcdef", -100, -200) == "abcdef")
 assert(utf8.remove("abcdef", -200, -100) == "abcdef")
 
-assert(utf8.advance"abc" == 1)
-assert(utf8.advance("abc", 3) == nil)
-assert(utf8.advance("abc", 4) == nil)
-assert(utf8.advance("abc", 3, -3) == 1)
-assert(utf8.advance("abc", 3, -4) == nil)
+assert(utf8.next"abc" == 1)
+assert(utf8.next("abc", 3) == nil)
+assert(utf8.next("abc", 4) == nil)
+assert(utf8.next("abc", 3, -3) == 1)
+assert(utf8.next("abc", 3, -4) == nil)
 
 assert(utf8.ncasecmp("abc", "AbC") == 0)
 assert(utf8.ncasecmp("abc", "AbE") == -1)
@@ -54,3 +54,5 @@ assert(utf8.ncasecmp("abe", "AbC") == 1)
 assert(utf8.ncasecmp("abc", "abcdef") == -1)
 assert(utf8.ncasecmp("abcdef", "abc") == 1)
 assert(utf8.ncasecmp("abZdef", "abcZef") == 1)
+
+print "OK"
