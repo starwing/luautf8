@@ -321,16 +321,23 @@ static int Lutf8_reverse(lua_State *L) {
 }
 
 static int convert(lua_State *L, unsigned int (*conv)(unsigned int)) {
-  luaL_Buffer b;
-  const char *e, *s = check_utf8(L, 1, &e);
-  luaL_buffinit(L, &b);
-  while (s < e) {
-    unsigned int ch;
-    s += utf8_decode(s, e, &ch);
-    ch = conv(ch);
-    add_utf8char(&b, ch);
+  int t = lua_type(L, 1);
+  if (t == LUA_TNUMBER)
+    lua_pushinteger(L, conv(lua_tointeger(L, 1)));
+  else if (t != LUA_TSTRING)
+    return luaL_error(L, "number/string expected, got %s", luaL_typename(L, 1));
+  else {
+    luaL_Buffer b;
+    const char *e, *s = to_utf8(L, 1, &e);
+    luaL_buffinit(L, &b);
+    while (s < e) {
+      unsigned int ch;
+      s += utf8_decode(s, e, &ch);
+      ch = conv(ch);
+      add_utf8char(&b, ch);
+    }
+    luaL_pushresult(&b);
   }
-  luaL_pushresult(&b);
   return 1;
 }
 
@@ -499,18 +506,52 @@ static int Lutf8_next(lua_State *L) {
 }
 
 static int Lutf8_width(lua_State *L) {
-  const char *e, *s = check_utf8(L, 1, &e);
+  int t = lua_type(L, 1);
   int ambi_is_single = !lua_toboolean(L, 2);
   int default_width = luaL_optinteger(L, 3, 0);
-  size_t width = 0;
+  if (t == LUA_TNUMBER) {
+    size_t chwidth = utf8_width(lua_tointeger(L, 1), ambi_is_single);
+    if (chwidth == 0) chwidth = default_width;
+    lua_pushinteger(L, chwidth);
+  }
+  else if (t != LUA_TSTRING)
+    return luaL_error(L, "number/string expected, got %s", luaL_typename(L, 1));
+  else {
+    const char *e, *s = to_utf8(L, 1, &e);
+    size_t width = 0;
+    while (s < e) {
+      unsigned int ch;
+      size_t chwidth;
+      s += utf8_decode(s, e, &ch);
+      chwidth = utf8_width(ch, ambi_is_single);
+      width += chwidth == 0 ? default_width : chwidth;
+    }
+    lua_pushinteger(L, width);
+  }
+  return 1;
+}
+
+static int Lutf8_widthindex(lua_State *L) {
+  const char *e, *s = check_utf8(L, 1, &e);
+  int width = luaL_checkinteger(L, 2);
+  int ambi_is_single = !lua_toboolean(L, 3);
+  int default_width = luaL_optinteger(L, 4, 0);
+  size_t idx = 1;
   while (s < e) {
     unsigned int ch;
     size_t chwidth;
     s += utf8_decode(s, e, &ch);
     chwidth = utf8_width(ch, ambi_is_single);
-    width += chwidth == 0 ? default_width : chwidth;
+    if (chwidth == 0) chwidth = default_width;
+    width -= chwidth;
+    if (width <= 0) {
+      lua_pushinteger(L, idx);
+      lua_pushinteger(L, width + chwidth);
+      return 2;
+    }
+    ++idx;
   }
-  lua_pushinteger(L, width);
+  lua_pushinteger(L, idx);
   return 1;
 }
 
@@ -1165,6 +1206,7 @@ LUALIB_API int luaopen_utf8(lua_State *L) {
     ENTRY(remove),
     ENTRY(next),
     ENTRY(width),
+    ENTRY(widthindex),
     ENTRY(ncasecmp),
     ENTRY(find),
     ENTRY(gmatch),

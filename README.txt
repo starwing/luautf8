@@ -111,12 +111,20 @@ utf8.width(s[, ambi_is_double[, default_width]]) -> width
     is 1.
     if default_width is given, it will be the width of unprintable character,
     used display a non-character mark for these characters.
+    if s is a code point, return the width of this code point.
+
+
+utf8.widthindex(s, location[, ambi_is_double[, default_width]]) -> width
+    return the character index at given location in string s. this is a
+    reverse operation of utf8.width().
 
 
 utf8.title(s) -> new_string
 utf8.fold(s) -> new_string
     convert UTF-8 string s to title-case, or folded case used to compare by
     ignore case.
+    if s is a number, it's treat as a code point and return a convert code
+    point (number). utf8.lower/utf8.upper has the same extension.
 
 
 utf8.ncasecmp(a, b) -> [-1,0,1]
