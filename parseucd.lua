@@ -28,12 +28,12 @@ local function parse_UnicodeData()
     -- 14. titlecase mapping
     local ucd = {}
 
-    local patt = "^(%x+);(.-);(..);"..(".-;"):rep(9).."(%x*);(%x*);(%x*)$"
+    local patt = "^(%x+)"..(";([^;]-)"):rep(14).."$"
 
     local last_data
 
     for line in io.lines() do
-        local cp, name, class, um, lm, tm = line:match(patt)
+        local cp, name, gc, _, bidi_class, _, _,_,_, _, _,_, um, lm, tm = line:match(patt)
         assert(cp, line)
         cp = tonumber(cp, 16)
         lm = lm ~= "" and tonumber(lm, 16)
@@ -42,11 +42,11 @@ local function parse_UnicodeData()
         if last_data and last_data.name:match"First%>$" then
             assert(name:match"Last%>$", line)
             for i = last_data.cp, cp-1 do
-                local data = {}
                 ucd[#ucd+1] = {
                     cp = i,
                     name = name,
-                    class = class,
+                    gc = gc,
+                    bidi_class = bidi_class,
                     lm = lm, um = um, tm = tm,
                 }
             end
@@ -54,7 +54,8 @@ local function parse_UnicodeData()
         local data = {
             cp = cp,
             name = name,
-            class = class,
+            gc = gc,
+            bidi_class = bidi_class,
             lm = lm, um = um, tm = tm,
         }
         ucd[#ucd+1] = data
@@ -325,7 +326,7 @@ do
             hasht[word] = true
         end
         return function(data)
-            return hasht[data.class]
+            return hasht[data.gc]
         end
     end
     local function mapping(field)
@@ -345,6 +346,9 @@ do
     write_ranges("digit", get_ranges(ucd, set(digit)))
     write_ranges("alnum_extend", get_ranges(ucd, set(alnum_extend)))
     write_ranges("punct", get_ranges(ucd, set(punct)))
+    write_ranges("unprintable", get_ranges(ucd, function(data)
+       return data.bidi_class == 'NSM' or data.gc == 'Cf'
+    end))
     write_convtable("tolower", get_ranges(ucd, mapping "lm"))
     write_convtable("toupper", get_ranges(ucd, mapping "um"))
     write_convtable("totitle", get_ranges(ucd, mapping "tm"))

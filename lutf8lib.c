@@ -230,6 +230,7 @@ define_category(digit)
 define_category(xdigit)
 define_category(punct)
 define_category(space)
+define_category(unprintable)
 define_converter(tolower)
 define_converter(toupper)
 define_converter(totitle)
@@ -251,7 +252,7 @@ static int utf8_width(unsigned int ch, int ambi_is_single) {
     return 2;
   if (find_in_range(ambiwidth_table, table_size(ambiwidth_table), ch))
     return ambi_is_single ? 1 : 2;
-  return utf8_isgraph(ch) ? 1 : 0;
+  return utf8_isunprintable(ch) ? 0 : 1;
 }
 
 
