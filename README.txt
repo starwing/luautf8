@@ -114,9 +114,12 @@ utf8.width(s[, ambi_is_double[, default_width]]) -> width
     if s is a code point, return the width of this code point.
 
 
-utf8.widthindex(s, location[, ambi_is_double[, default_width]]) -> width
+utf8.widthindex(s, location[, ambi_is_double[, default_width]]) -> idx, offset, width
     return the character index at given location in string s. this is a
     reverse operation of utf8.width().
+    this function return a index of location, and a offset in in UTF-8
+    encoding. e.g. if cursor is at the second column (middle) of the wide
+    char, offset will be 2. the width of character at idx is returned, also.
 
 
 utf8.title(s) -> new_string

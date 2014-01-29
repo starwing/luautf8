@@ -547,7 +547,8 @@ static int Lutf8_widthindex(lua_State *L) {
     if (width <= 0) {
       lua_pushinteger(L, idx);
       lua_pushinteger(L, width + chwidth);
-      return 2;
+      lua_pushinteger(L, chwidth);
+      return 3;
     }
     ++idx;
   }
