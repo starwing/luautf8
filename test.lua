@@ -42,11 +42,35 @@ assert(utf8.remove("abcdef", -100) == "")
 assert(utf8.remove("abcdef", -100, -200) == "abcdef")
 assert(utf8.remove("abcdef", -200, -100) == "abcdef")
 
-assert(utf8.next"abc" == 1)
-assert(utf8.next("abc", 3) == nil)
-assert(utf8.next("abc", 4) == nil)
-assert(utf8.next("abc", 3, -3) == 1)
-assert(utf8.next("abc", 3, -4) == nil)
+do
+    local s = utf8.escape "a%255bc"
+    assert(utf8.charpos(s) == 1)
+    assert(utf8.charpos(s, 0) == 1)
+    assert(utf8.charpos(s, 1) == 1)
+    assert(utf8.charpos(s, 2) == 2)
+    assert(utf8.charpos(s, 3) == 4)
+    assert(utf8.charpos(s, 4) == 5)
+    assert(utf8.charpos(s, 5) == nil)
+    assert(utf8.charpos(s, 6) == nil)
+    assert(utf8.charpos(s, -1) == 5)
+    assert(utf8.charpos(s, -2) == 4)
+    assert(utf8.charpos(s, -3) == 2)
+    assert(utf8.charpos(s, -4) == 1)
+    assert(utf8.charpos(s, -5) == nil)
+    assert(utf8.charpos(s, -6) == nil)
+    assert(utf8.charpos(s, 3, -1) == 2)
+    assert(utf8.charpos(s, 3, 0) == 3)
+    assert(utf8.charpos(s, 3, 1) == 4)
+    assert(utf8.charpos(s, 6, -3) == 2)
+    assert(utf8.charpos(s, 6, -4) == 1)
+    assert(utf8.charpos(s, 6, -5) == nil)
+end
+
+local idx = 1
+for pos, code in utf8.next, s do
+    assert(t[idx] == code)
+    idx = idx + 1
+end
 
 assert(utf8.ncasecmp("abc", "AbC") == 0)
 assert(utf8.ncasecmp("abc", "AbE") == -1)

@@ -289,6 +289,14 @@ static const char *posrelat_end(const char *s, const char *e, int idx) {
   return utf8_index(s, e, idx);
 }
 
+static int posrelat_raw(const char *s, const char *e, int idx) {
+    if (idx > 0) --idx;
+    else if (idx < 0) idx += e-s;
+    if (idx < 0) idx = 0;
+    else if (idx >= e-s) idx = e-s;
+    return idx;
+}
+
 static int Lutf8_len(lua_State *L) {
   const char *e, *s = check_utf8(L, 1, &e);
   lua_pushinteger(L, (lua_Integer)utf8_length(s, e));
@@ -396,17 +404,21 @@ static const char *parse_escape(lua_State *L,
   int in_bracket = 0;
   if (*s == '{') ++s, in_bracket = 1;
   while (s < e) {
-    ch = (unsigned char)*s++;
-    if (in_bracket && ch == '}')
+    ch = (unsigned char)*s;
+    if (in_bracket && ch == '}') {
+      ++s;
       break;
+    }
     if (ch > 0x7F || (ch = mask[ch]) == ' ') {
       if (in_bracket)
         luaL_error(L, "invalid escape '%c'", *s);
-      --s;
       break;
     }
+    if (!is_hex && ch > '9')
+        break;
     escape *= is_hex ? 16 : 10;
     escape += ch - '0';
+    ++s;
   }
   *pch = escape;
   return s;
@@ -480,15 +492,8 @@ static int Lutf8_remove(lua_State *L) {
   return 1;
 }
 
-static int Lutf8_next(lua_State *L) {
-  const char *e, *s = check_utf8(L, 1, &e);
-  int offset = luaL_optinteger(L, 2, 0);
-  const char *cur = s;
+static int push_offset(lua_State *L, const char *s, const char *e, const char *cur, int offset) {
   unsigned int ch;
-  if (!lua_isnoneornil(L, 3)) {
-      cur = s + offset;
-      offset = luaL_checkinteger(L, 3);
-  }
   if (offset >= 0) {
     while (cur < e && offset-- > 0)
       cur = utf8_next(cur, e);
@@ -503,6 +508,31 @@ static int Lutf8_next(lua_State *L) {
   lua_pushinteger(L, cur-s+1);
   lua_pushinteger(L, ch);
   return 2;
+}
+
+static int Lutf8_charpos(lua_State *L) {
+  const char *e, *s = check_utf8(L, 1, &e);
+  const char *cur;
+  if (lua_isnoneornil(L, 3)) {
+      int offset = luaL_optinteger(L, 2, 1);
+      if (offset > 0) --offset;
+      cur = offset >= 0 ? s : e;
+      return push_offset(L, s, e, cur, offset);
+  }
+  cur = s + posrelat_raw(s, e, luaL_optinteger(L, 2, 1));
+  return push_offset(L, s, e, cur, luaL_checkinteger(L, 3));
+}
+
+static int Lutf8_next(lua_State *L) {
+  const char *e, *s = check_utf8(L, 1, &e);
+  const char *cur = s;
+  int offset = 0;
+  if (!lua_isnoneornil(L, 2)) {
+      cur += posrelat_raw(s, e, luaL_checkinteger(L, 2));
+      offset = 1;
+  }
+  offset = luaL_optinteger(L, 3, offset);
+  return push_offset(L, s, e, cur, offset);
 }
 
 static int Lutf8_width(lua_State *L) {
@@ -1205,6 +1235,7 @@ LUALIB_API int luaopen_utf8(lua_State *L) {
     ENTRY(escape),
     ENTRY(insert),
     ENTRY(remove),
+    ENTRY(charpos),
     ENTRY(next),
     ENTRY(width),
     ENTRY(widthindex),

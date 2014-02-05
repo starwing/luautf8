@@ -79,13 +79,21 @@ utf8.escape(str) -> utf8 string
       print(u"%%123%?%d%%u")
 
 
-utf8.next(s[[, charpos], offset]) -> charpos, code point
+utf8.charpos(s[[, charpos], offset]) -> charpos, code point
     convert UTF-8 position to byte offset.
+    if only offset is given, return byte offset of this UTF-8 char index.
+    if charpos and offset is given, a new charpos will calculate, by
+    add/subtract UTF-8 char offset to current charpos.
+    in all case, it return a new char position, and code point (a number) at
+    this position.
+
+utf8.next(s[, charpos[, offset]]) -> charpos, code point
+    iterate though the UTF-8 string s.
     If only s is given, it can used as a iterator:
       for pos, code in utf8.next, "utf8-string" do
          -- ...
       end
-    if only offset is given, return byte offset of this UTF-8 char index.
+    if only charpos is given, return the next byte offset of in string.
     if charpos and offset is given, a new charpos will calculate, by
     add/subtract UTF-8 char offset to current charpos.
     in all case, it return a new char position, and code point (a number) at
