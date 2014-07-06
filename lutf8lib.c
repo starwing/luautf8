@@ -6,6 +6,7 @@
 
 #include <assert.h>
 #include <string.h>
+#include "utf8conv.h"
 
 
 /* UTF-8 string operations */
@@ -1217,6 +1218,39 @@ static int Lutf8_gmatch(lua_State *L) {
   return 1;
 }
 
+static int Lutf8_split(lua_State *L) {
+	const char *s = luaL_checkstring(L, 1);
+	const char *sep = luaL_checkstring(L, 2);
+	const char *e;
+	int i = 1;
+	lua_newtable(L); /* result */
+	/* repeat for each separator */
+	while ((e = strchr(s, *sep)) != NULL) {
+		lua_pushlstring(L, s, e - s); /* push substring */
+		lua_rawseti(L, -2, i++);
+		s = e + 1; /* skip separator */
+	}
+	/* push last substring */
+	lua_pushstring(L, s);
+	lua_rawseti(L, -2, i);
+	return 1; /* return the table */
+}
+
+static int Lutf8_from_mbcs(lua_State *L) {	
+	luaL_Buffer b;
+	const char* line = luaL_checkstring(L, 1);
+	luaL_buffinit(L, &b);
+
+	char* utf8str = sqlite3_win32_mbcs_to_utf8(line);
+	
+	luaL_addstring(&b, utf8str);
+
+	free(utf8str);
+
+	luaL_pushresult(&b);
+	return 1;
+}
+
 
 /* lua module import interface */
 
@@ -1244,6 +1278,7 @@ LUALIB_API int luaopen_utf8(lua_State *L) {
     ENTRY(gmatch),
     ENTRY(gsub),
     ENTRY(match),
+	ENTRY(from_mbcs),
 #undef  ENTRY
     { NULL, NULL }
   };
