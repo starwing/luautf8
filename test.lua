@@ -14,6 +14,26 @@ local s = utf8.escape('%'..table.concat(t, '%'))
 assert(utf8.len(s) == 7)
 assert(get_codes(s) == table.concat(t, ' '))
 
+-- tset byte
+local function assert_table_equal(t1, t2, i, j)
+   i = i or 1
+   j = j or #t2
+   local len = j-i+1
+   assert(#t1 == len)
+   for cur = 1, len do
+      assert(t1[cur] == t2[cur+i-1])
+   end
+end
+assert_table_equal({utf8.byte(s, 2)}, t, 2, 2)
+assert_table_equal({utf8.byte(s, 1, -1)}, t)
+assert_table_equal({utf8.byte(s, -100)}, {})
+assert_table_equal({utf8.byte(s, -100, -200)}, {})
+assert_table_equal({utf8.byte(s, -200, -100)}, {})
+assert_table_equal({utf8.byte(s, 100)}, {})
+assert_table_equal({utf8.byte(s, 100, 200)}, {})
+assert_table_equal({utf8.byte(s, 200, 100)}, {})
+
+
 -- test char
 assert(s == utf8.char(unpack(t)))
 
@@ -24,8 +44,14 @@ end
 
 -- test sub
 assert(get_codes(utf8.sub(s, 2, -2)) == table.concat(t, ' ', 2, #t-1))
+assert(get_codes(utf8.sub(s, -100)) == table.concat(t, ' '))
+assert(get_codes(utf8.sub(s, -100, -200)) == "")
+assert(get_codes(utf8.sub(s, -200, -100)) == "")
+assert(get_codes(utf8.sub(s, 100, 200)) == "")
+assert(get_codes(utf8.sub(s, 200, 100)) == "")
 
 
+-- test insert/remove
 assert(utf8.insert("abcdef", "...") == "abcdef...")
 assert(utf8.insert("abcdef", 0, "...") == "abcdef...")
 assert(utf8.insert("abcdef", 1, "...") == "...abcdef")
@@ -41,6 +67,8 @@ assert(utf8.remove("abcdef", 100) == "abcdef")
 assert(utf8.remove("abcdef", -100) == "")
 assert(utf8.remove("abcdef", -100, -200) == "abcdef")
 assert(utf8.remove("abcdef", -200, -100) == "abcdef")
+assert(utf8.remove("abcdef", 100, 200) == "abcdef")
+assert(utf8.remove("abcdef", 200, 100) == "abcdef")
 
 do
     local s = utf8.escape "a%255bc"
@@ -78,5 +106,7 @@ assert(utf8.ncasecmp("abe", "AbC") == 1)
 assert(utf8.ncasecmp("abc", "abcdef") == -1)
 assert(utf8.ncasecmp("abcdef", "abc") == 1)
 assert(utf8.ncasecmp("abZdef", "abcZef") == 1)
+
+assert(utf8.gsub("x^[]+$", "%p", "%%%0") == "x%^%[%]%+%$")
 
 print "OK"
