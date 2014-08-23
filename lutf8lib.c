@@ -1,3 +1,4 @@
+/* vim: set ft=c nu et sw=2 fdc=2 fdm=syntax : */
 #define LUA_LIB
 #include <lua.h>
 #include <lauxlib.h>
@@ -169,7 +170,7 @@ static const char *utf8_index(const char *s, const char *e, int idx) {
 }
 
 
-/* UTF-8 character categories */
+/* Unicode character categories */
 
 #include "unidata.h"
 
@@ -225,12 +226,10 @@ define_category(alpha)
 define_category(lower)
 define_category(upper)
 define_category(cntrl)
-define_category(graph)
 define_category(digit)
 define_category(xdigit)
 define_category(punct)
 define_category(space)
-define_category(unprintable)
 define_converter(tolower)
 define_converter(toupper)
 define_converter(totitle)
@@ -238,6 +237,16 @@ define_converter(tofold)
 
 #undef define_category
 #undef define_converter
+
+static int utf8_isgraph(unsigned int ch) {
+  if (find_in_range(space_table, table_size(space_table), ch))
+    return 0;
+  if (find_in_range(graph_table, table_size(graph_table), ch))
+    return 1;
+  if (find_in_range(compose_table, table_size(compose_table), ch))
+    return 1;
+  return 0;
+}
 
 static int utf8_isalnum(unsigned int ch) {
   if (find_in_range(alpha_table, table_size(alpha_table), ch))
@@ -252,7 +261,11 @@ static int utf8_width(unsigned int ch, int ambi_is_single) {
     return 2;
   if (find_in_range(ambiwidth_table, table_size(ambiwidth_table), ch))
     return ambi_is_single ? 1 : 2;
-  return utf8_isunprintable(ch) ? 0 : 1;
+  if (find_in_range(compose_table, table_size(compose_table), ch))
+    return 0;
+  if (find_in_range(unprintable_table, table_size(unprintable_table), ch))
+    return 0;
+  return 1;
 }
 
 

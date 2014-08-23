@@ -160,7 +160,7 @@ local function parse_PropList(f)
     end
 
     table.sort(ranges)
-    return ranges
+    return ranges, lookup
 end
 
 local function get_ranges(list, func, proc)
@@ -289,7 +289,7 @@ typedef struct conv_table {
 
 do
     local function ranges(name, f)
-        local r = get_ranges(parse_PropList(f))
+        local r = get_ranges((parse_PropList(f)))
         write_ranges(name, r)
     end
 
@@ -306,15 +306,16 @@ do
     ranges("xdigit", "Hex_Digit")
 
     io.input "ucd/PropList.txt"
-    local space = get_ranges(parse_PropList "White_Space")
-    write_ranges("space", space)
+    ranges("space", "White_Space")
 
     io.input "ucd/DerivedCoreProperties.txt"
-    local graph = get_ranges(parse_PropList {
-        Grapheme_Base = true,
-        Grapheme_Extend = true,
-    })
-    write_ranges("graph", diff_ranges(graph, space))
+    ranges("unprintable", "Default_Ignorable_Code_Point")
+
+    io.input "ucd/DerivedCoreProperties.txt"
+    ranges("graph", "Grapheme_Base")
+
+    io.input "ucd/DerivedCoreProperties.txt"
+    ranges("compose", "Grapheme_Extend")
 end
 
 do
@@ -341,14 +342,11 @@ do
     local cntrl = "Cc Cf Co"
     local digit = "Nd"
     local alnum_extend = "Nd Nl No Pc"
-    local punct = "Sm Pc Pd Ps Pe Pi Pf Po"
+    local punct = "Sk Sc Sm Pc Pd Ps Pe Pi Pf Po"
     write_ranges("cntrl", get_ranges(ucd, set(cntrl)))
     write_ranges("digit", get_ranges(ucd, set(digit)))
     write_ranges("alnum_extend", get_ranges(ucd, set(alnum_extend)))
     write_ranges("punct", get_ranges(ucd, set(punct)))
-    write_ranges("unprintable", get_ranges(ucd, function(data)
-       return data.bidi_class == 'NSM' or data.gc == 'Cf'
-    end))
     write_convtable("tolower", get_ranges(ucd, mapping "lm"))
     write_convtable("toupper", get_ranges(ucd, mapping "um"))
     write_convtable("totitle", get_ranges(ucd, mapping "tm"))
