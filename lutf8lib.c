@@ -13,20 +13,6 @@
 
 #define UTF_MAX 8
 
-static unsigned char utf8_count[UCHAR_MAX+1] = {
-  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-  2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
-  3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,
-  4,4,4,4,4,4,4,4,
-  5,5,5,5,
-  6,6,6,6,
-};
-
 static size_t utf8_encode(char *s, unsigned int ch) {
   if (ch < 0x80) {
     s[0] = (char)ch;
@@ -101,24 +87,19 @@ static size_t utf8_decode(const char *s, const char *e, unsigned int *pch) {
     return 3;
   }
   {
-    int total, trail;
-    total = utf8_count[ch];
-    trail = total - 1;
-
-    if (total == 0 || s+total >= e)
-      goto fallback;
-
-    ch &= 0x3F >> trail;
-    do {
-      ++s;
-      if ((*s & 0xC0) != 0x80)
-        goto fallback;
-      ch <<= 6;
-      ch |= (*s & 0x3F);
-      --trail;
-    } while (trail > 0);
-    *pch = ch;
-    return total;
+    int count = 0; /* to count number of continuation bytes */
+    unsigned int res;
+    while ((ch & 0x40) != 0) { /* still have continuation bytes? */
+      int cc = (unsigned char)s[++count];
+      if ((cc & 0xC0) != 0x80) /* not a continuation byte? */
+        goto fallback; /* invalid byte sequence, fallback */
+      res = (res << 6) | (cc & 0x3F); /* add lower 6 bits from cont. byte */
+      ch <<= 1; /* to test next bit */
+    }
+    if (count > 5)
+      goto fallback; /* invalid byte sequence */
+    res |= ((ch & 0x7F) << (count * 5)); /* add first byte */
+    return count+1;
   }
 
 fallback:
