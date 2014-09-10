@@ -342,7 +342,7 @@ static int convert(lua_State *L, unsigned int (*conv)(unsigned int)) {
     const char *e, *s = to_utf8(L, 1, &e);
     luaL_buffinit(L, &b);
     while (s < e) {
-      unsigned int ch;
+      unsigned int ch = 0;
       s += utf8_decode(s, e, &ch);
       ch = conv(ch);
       add_utf8char(&b, ch);
@@ -372,7 +372,7 @@ static int Lutf8_byte(lua_State *L) {
   if (u_posrange(&s, &e, posi, posj)) {
     luaL_checkstack(L, e-s, "string slice too long");
     while (s < e) {
-      unsigned int ch;
+      unsigned int ch = 0;
       s += utf8_decode(s, e, &ch);
       lua_pushinteger(L, ch);
       ++n;
@@ -432,7 +432,7 @@ static int Lutf8_escape(lua_State *L) {
   luaL_Buffer b;
   luaL_buffinit(L, &b);
   while (s < e) {
-    unsigned int ch;
+    unsigned int ch = 0;
     s += utf8_decode(s, e, &ch);
     if (ch == '%') {
       int is_hex = 0;
@@ -497,7 +497,7 @@ static int Lutf8_remove(lua_State *L) {
 
 static int push_offset(lua_State *L, const char *s, const char *e,
     const char *cur, lua_Integer offset) {
-  unsigned int ch;
+  unsigned int ch = 0;
   if (offset >= 0) {
     while (cur < e && offset-- > 0)
       cur = utf8_next(cur, e);
@@ -559,8 +559,8 @@ static int Lutf8_width(lua_State *L) {
     const char *e, *s = to_utf8(L, 1, &e);
     size_t width = 0;
     while (s < e) {
-      unsigned int ch;
-      size_t chwidth;
+      unsigned int ch = 0;
+      size_t chwidth = 0;
       s += utf8_decode(s, e, &ch);
       chwidth = utf8_width(ch, ambi_is_single);
       width += chwidth == 0 ? default_width : chwidth;
@@ -577,7 +577,7 @@ static int Lutf8_widthindex(lua_State *L) {
   int default_width = luaL_optinteger(L, 4, 0);
   size_t idx = 1;
   while (s < e) {
-    unsigned int ch;
+    unsigned int ch = 0;
     size_t chwidth;
     s += utf8_decode(s, e, &ch);
     chwidth = utf8_width(ch, ambi_is_single);
@@ -669,7 +669,7 @@ static int capture_to_close (MatchState *ms) {
 }
 
 static const char *classend (MatchState *ms, const char *p) {
-  unsigned int ch;
+  unsigned int ch = 0;
   p += utf8_decode(p, ms->p_end, &ch);
   switch (ch) {
     case L_ESC: {
@@ -720,7 +720,7 @@ static int matchbracketclass (unsigned int c, const char *p, const char *ec) {
     p++;  /* skip the `^' */
   }
   while (p < ec) {
-    unsigned int ch;
+    unsigned int ch = 0;
     p += utf8_decode(p, ec, &ch);
     if (ch == L_ESC) {
       p += utf8_decode(p, ec, &ch);
@@ -728,7 +728,7 @@ static int matchbracketclass (unsigned int c, const char *p, const char *ec) {
         return sig;
     }
     else {
-      unsigned int next;
+      unsigned int next = 0;
       const char *np = p + utf8_decode(p, ec, &next);
       if (next == '-' && np < ec) {
         p = np + utf8_decode(np, ec, &next);
@@ -746,7 +746,7 @@ static int singlematch (MatchState *ms, const char *s, const char *p,
   if (s >= ms->src_end)
     return 0;
   else {
-    unsigned int ch, pch;
+    unsigned int ch = 0, pch = 0;
     utf8_decode(s, ms->src_end, &ch);
     p += utf8_decode(p, ms->p_end, &pch);
     switch (pch) {
@@ -761,7 +761,7 @@ static int singlematch (MatchState *ms, const char *s, const char *p,
 
 static const char *matchbalance (MatchState *ms, const char *s,
                                    const char **p) {
-  unsigned int ch, begin, end;
+  unsigned int ch = 0, begin = 0, end = 0;
   *p += utf8_decode(*p, ms->p_end, &begin);
   if (*p >= ms->p_end)
     luaL_error(ms->L, "malformed pattern "
@@ -848,7 +848,7 @@ static const char *match (MatchState *ms, const char *s, const char *p) {
     luaL_error(ms->L, "pattern too complex");
   init: /* using goto's to optimize tail recursion */
   if (p != ms->p_end) {  /* end of pattern? */
-    unsigned int ch;
+    unsigned int ch = 0;
     utf8_decode(p, ms->p_end, &ch);
     switch (ch) {
       case '(': {  /* start capture */
@@ -1139,7 +1139,7 @@ static void add_s (MatchState *ms, luaL_Buffer *b, const char *s,
                                                    const char *e) {
   const char *new_end, *news = to_utf8(ms->L, 3, &new_end);
   while (news < new_end) {
-    unsigned int ch;
+    unsigned int ch = 0;
     news += utf8_decode(news, new_end, &ch);
     if (ch != L_ESC)
       add_utf8char(b, ch);
@@ -1222,7 +1222,7 @@ static int Lutf8_gsub(lua_State *L) {
     if (e && e > s) /* non empty match? */
       s = e;  /* skip it */
     else if (s < es) {
-      unsigned int ch;
+      unsigned int ch = 0;
       s += utf8_decode(s, es, &ch);
       add_utf8char(&b, ch);
     }
