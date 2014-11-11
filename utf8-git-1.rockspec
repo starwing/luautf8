@@ -1,5 +1,5 @@
 package = "utf8"
-version = "0.1-1"
+version = "git-1"
 
 source = {
   tag = "0.1",
