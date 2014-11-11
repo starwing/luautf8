@@ -2,7 +2,6 @@ package = "utf8"
 version = "git-1"
 
 source = {
-  tag = "0.1",
   url = "git://github.com/dannote/luautf8"
 }
 
