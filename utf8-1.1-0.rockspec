@@ -1,5 +1,5 @@
 package = "utf8"
-version = "git-1"
+version = "1.1-0"
 
 source = {
   url = "git://github.com/dannote/luautf8"
