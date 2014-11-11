@@ -22,16 +22,12 @@ It also add some useful routines against UTF-8 features, some like:
 [2]: http://www.lua.org/tests/5.2/
 
 
-Install:
+LuaRocks Installation
+---------------------
+luarocks install utf8
 
-Just compile lutf8lib.c with you favourite compiler:
-  on windows:
-    gcc -mdll -O3 -DLUA_BUILD_AS_DLL -I/path/to/lua/include lutf8lib.c -o utf8.dll -llua52
-  on linux:
-    gcc -shared -O3 lutf8lib.c -o utf8.so
-
-
-Usage:
+Usage
+-----
 
 Many routines are same as Lua's string module:
   - utf8.byte
