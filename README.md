@@ -1,7 +1,7 @@
 UTF-8 module for Lua 5.x
 ========================
 
-This module is add UTF-8 support to Lua.
+This module adds UTF-8 support to Lua.
 
 It use data extracted from
 [Unicode Character Database](http://www.unicode.org/reports/tr44/),
@@ -35,6 +35,9 @@ in your codes :-(
 LuaRocks Installation
 ---------------------
 `luarocks install utf8`
+
+It's now full-compatible with Lua5.3's utf8 library, so replace this
+file (and headers) with lua5.3 source's lutf8lib.c is also okay.
 
 Usage
 -----
