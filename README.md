@@ -3,8 +3,9 @@ UTF-8 module for Lua 5.x
 
 This module is add UTF-8 support to Lua.
 
-It use data extracted from [Unicode Character Database](http://www.unicode.org/reports/tr44/), and tested on Lua
-5.2.3 and LuaJIT.
+It use data extracted from
+[Unicode Character Database](http://www.unicode.org/reports/tr44/),
+and tested on Lua 5.2.3, Lua 5.3.0 and LuaJIT.
 
 parseucd.lua is a pure Lua script generate unidata.h, to support convert
 characters and check characters' category.
@@ -17,6 +18,16 @@ It also add some useful routines against UTF-8 features, some like:
 - string insert/remove, since UTF-8 substring extract may expensive.
 - calculate Unicode width, useful when implement e.g. console emulator.
 - a useful interface to translate Unicode offset and byte offset.
+
+Note that to avoid conflict with the Lua5.3's buitin library 'utf8',
+this library produce a file like lua-utf8.dll or lua-utf8.so. so use
+it like this:
+
+```lua
+local utf8 = require 'lua-utf8'
+```
+
+in your codes :-(
 
 [2]: http://www.lua.org/tests/5.2/
 
@@ -53,6 +64,14 @@ Some routines in string module needn't support Unicode:
 
 They are NOT in utf8 module.
 
+Some routines are the compatible for Lua 5.3's basic UTF-8 support
+library:
+- `utf8.offset`
+- `utf8.codepoint`
+- `utf8.codes`
+
+See Lua5.3's manual to get usage.
+
 Some routines are new, with some Unicode-spec functions:
 
 ###utf8.escape(str) -> utf8 string
@@ -85,7 +104,7 @@ this position.
 ###utf8.next(s[, charpos[, offset]]) -> charpos, code point
 iterate though the UTF-8 string s.
 If only s is given, it can used as a iterator:
-```
+```lua
 for pos, code in utf8.next, "utf8-string" do
    -- ...
 end
@@ -93,9 +112,8 @@ end
 if only charpos is given, return the next byte offset of in string.
 if charpos and offset is given, a new charpos will calculate, by
 add/subtract UTF-8 char offset to current charpos.
-in all case, it return a new char position, and code point (a number) at
-this position.
-
+in all case, it return a new char position (in bytes), and code point
+(a number) at this position.
 
 ###utf8.insert(s[, idx], substring) -> new_string
 insert a substring to s. If idx is given, insert substring before char at
@@ -142,6 +160,7 @@ compare a and b without case, -1 means a < b, 0 means a == b and 1 means a > b.
 Improvement needed
 ------------------
 
+- add Lua 5.3 spec test-suite.
 - more test case.
 - grapheme-compose support, and affect in utf8.reverse and utf8.width
 - Unicode normalize algorithm implement.

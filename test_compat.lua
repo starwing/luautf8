@@ -1,4 +1,4 @@
-local utf8 = require 'utf8'
+local utf8 = require 'lua-utf8'
 print('testing utf8 library')
 
 assert(utf8.sub("123456789",2,4) == "234")

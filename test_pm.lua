@@ -1,4 +1,4 @@
-local utf8 = require 'utf8'
+local utf8 = require 'lua-utf8'
 
 print('testing pattern matching')
 
@@ -8,7 +8,7 @@ function f(s, p)
 end
 
 function f1(s, p)
-  p = utf8.gsub(p, "%%([0-9])", function (s) return "%" .. (s+1) end)
+  p = utf8.gsub(p, "%%([0-9])", function (s) return "%" .. (tonumber(s)+1) end)
   p = utf8.gsub(p, "^(^?)", "%1()", 1)
   p = utf8.gsub(p, "($?)$", "()%1", 1)
   local t = {utf8.match(s, p)}
@@ -169,7 +169,7 @@ local function dostring (s) return load(s)() or "" end
 assert(utf8.gsub("alo $a=1$ novamente $return a$", "$([^$]*)%$", dostring) ==
             "alo  novamente 1")
 
-x = utf8.gsub("$local utf8=require'utf8' x=utf8.gsub('alo', '.', utf8.upper)$ assim vai para $return x$",
+x = utf8.gsub("$local utf8=require'lua-utf8' x=utf8.gsub('alo', '.', utf8.upper)$ assim vai para $return x$",
          "$([^$]*)%$", dostring)
 assert(x == ' assim vai para ALO')
 
