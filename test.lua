@@ -1,4 +1,4 @@
-local utf8 = require 'utf8'
+local utf8 = require 'lua-utf8'
 local unpack = unpack or table.unpack
 
 local function get_codes(s)

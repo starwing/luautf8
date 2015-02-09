@@ -1,5 +1,5 @@
 package = "utf8"
-version = "1.1-0"
+version = "1.2-0"
 
 source = {
   url = "git://github.com/dannote/luautf8"
@@ -21,6 +21,6 @@ dependencies = {
 build = {
   type = "builtin",
   modules = {
-    utf8 = "lutf8lib.c"
+    ["lua-utf8"]= "lutf8lib.c"
   }
 }
