@@ -581,10 +581,10 @@ static int Lutf8_width(lua_State *L) {
     return luaL_error(L, "number/string expected, got %s", luaL_typename(L, 1));
   else {
     const char *e, *s = to_utf8(L, 1, &e);
-    size_t width = 0;
+    int width = 0;
     while (s < e) {
       unsigned ch;
-      size_t chwidth;
+      int chwidth;
       s += utf8_decode(s, e, &ch);
       chwidth = utf8_width(ch, ambi_is_single);
       width += chwidth == 0 ? default_width : chwidth;
@@ -1262,6 +1262,8 @@ static int Lutf8_gsub(lua_State *L) {
 
 /* lua module import interface */
 
+#define UTF8PATT	"[\0-\x7F\xC2-\xF4][\x80-\xBF]*"
+
 LUALIB_API int luaopen_utf8(lua_State *L) {
   luaL_Reg libs[] = {
 #define ENTRY(name) { #name, Lutf8_##name }
@@ -1301,8 +1303,11 @@ LUALIB_API int luaopen_utf8(lua_State *L) {
   luaL_register(L, NULL, libs);
 #endif
 
+  lua_pushliteral(L, UTF8PATT);
+  lua_setfield(L, -2, "charpattern");
+
   return 1;
 }
-/* cc: flags+='-s -O2 -mdll -DLUA_BUILD_AS_DLL'
+/* cc: flags+='-Wall -Wextra -s -O2 -mdll -DLUA_BUILD_AS_DLL'
  * cc: libs+='-llua53.dll' output='lua-utf8.dll'
  * cc: run='lua.exe test.lua' */
