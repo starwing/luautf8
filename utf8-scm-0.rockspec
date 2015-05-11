@@ -1,8 +1,8 @@
 package = "utf8"
-version = "1.2-0"
+version = "scm-0"
 
 source = {
-  url = "git://github.com/dannote/luautf8"
+  url = "git://github.com/starwing/luautf8.git"
 }
 
 description = {
