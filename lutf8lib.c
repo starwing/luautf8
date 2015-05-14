@@ -141,17 +141,17 @@ static const char *utf8_index(const char *s, const char *e, int idx) {
 #include "unidata.h"
 
 static int find_in_range(range_table *t, size_t size, unsigned ch) {
-  size_t first, last;
+  size_t begin, end;
 
-  first = 0;
-  last = size;
+  begin = 0;
+  end = size;
 
-  while (first < last) {
-    int mid = (first + last) / 2;
+  while (begin < end) {
+    int mid = (begin + end) / 2;
     if (t[mid].last < ch)
-      first = mid + 1;
+      begin = mid + 1;
     else if (t[mid].first > ch)
-      last = mid;
+      end = mid;
     else 
       return (ch - t[mid].first) % t[mid].step == 0;
   }
@@ -160,17 +160,17 @@ static int find_in_range(range_table *t, size_t size, unsigned ch) {
 }
 
 static int convert_char(conv_table *t, size_t size, unsigned ch) {
-  size_t first, last;
+  size_t begin, end;
 
-  first = 0;
-  last = size;
+  begin = 0;
+  end = size;
 
-  while (first < last) {
-    int mid = (first + last) / 2;
+  while (begin < end) {
+    int mid = (begin + end) / 2;
     if (t[mid].last < ch)
-      first = mid + 1;
+      begin = mid + 1;
     else if (t[mid].first > ch)
-      last = mid;
+      end = mid;
     else if ((ch - t[mid].first) % t[mid].step == 0)
       return ch + t[mid].offset;
     else

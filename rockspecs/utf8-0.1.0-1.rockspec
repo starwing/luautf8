@@ -1,8 +1,8 @@
 package = "utf8"
-version = "scm-0"
+version = "0.1.0-1"
 
 source = {
-  url = "git://github.com/starwing/luautf8.git"
+  url = "https://github.com/starwing/luautf8/archive/0.1.0.tar.gz"
 }
 
 description = {
