@@ -1,4 +1,4 @@
-package = "utf8"
+package = "luautf8"
 version = "scm-0"
 
 source = {
