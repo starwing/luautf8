@@ -73,7 +73,7 @@ static size_t utf8_decode(const char *s, const char *e, unsigned *pch) {
   }
   {
     int count = 0; /* to count number of continuation bytes */
-    unsigned res;
+    unsigned res = 0;
     while ((ch & 0x40) != 0) { /* still have continuation bytes? */
       int cc = (unsigned char)s[++count];
       if ((cc & 0xC0) != 0x80) /* not a continuation byte? */
@@ -84,6 +84,7 @@ static size_t utf8_decode(const char *s, const char *e, unsigned *pch) {
     if (count > 5)
       goto fallback; /* invalid byte sequence */
     res |= ((ch & 0x7F) << (count * 5)); /* add first byte */
+    *pch = res;
     return count+1;
   }
 
