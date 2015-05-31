@@ -34,7 +34,7 @@ in your codes :-(
 
 LuaRocks Installation
 ---------------------
-`luarocks install utf8`
+`luarocks install luautf8`
 
 It's now full-compatible with Lua5.3's utf8 library, so replace this
 file (and headers) with lua5.3 source's lutf8lib.c is also okay.

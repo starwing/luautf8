@@ -33,9 +33,9 @@ static size_t utf8_encode(char *s, unsigned ch) {
   {
     char buff[UTF8_MAX];
     unsigned mfb = 0x3F; /* maximum that fits in first byte */
-    int n = 0;
+    int n = 1;
     do { /* add continuation bytes */
-      buff[UTF8_MAX - (++n)] = 0x80 | (ch&0x3F);
+      buff[UTF8_MAX - (n++)] = 0x80 | (ch&0x3F);
       ch >>= 6; /* remove added bits */
       mfb >>= 1; /* now there is one less bit available in first byte */
     } while (ch > mfb);  /* still needs continuation byte? */
