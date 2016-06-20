@@ -341,7 +341,7 @@ do
     end
     local cntrl = "Cc Cf Co"
     local digit = "Nd"
-    local alnum_extend = "Nd Nl No Pc"
+    local alnum_extend = "Nd Nl No"
     local punct = "Sk Sc Sm Pc Pd Ps Pe Pi Pf Po"
     write_ranges("cntrl", get_ranges(ucd, set(cntrl)))
     write_ranges("digit", get_ranges(ucd, set(digit)))

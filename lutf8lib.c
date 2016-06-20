@@ -1309,6 +1309,7 @@ LUALIB_API int luaopen_utf8(lua_State *L) {
 
   return 1;
 }
-/* cc: flags+='-Wall -Wextra -s -O2 -mdll -DLUA_BUILD_AS_DLL'
- * cc: libs+='-llua53.dll' output='lua-utf8.dll'
- * cc: run='lua.exe test.lua' */
+/* win32cc: flags+='-Wall -Wextra -s -O2 -mdll -DLUA_BUILD_AS_DLL'
+ * win32cc: libs+='-llua53.dll' output='lua-utf8.dll'
+ * win32cc: run='lua.exe test.lua'
+ * maccc: flags+='-bundle -undefined dynamic_lookup' output='lua-utf8.so' */
