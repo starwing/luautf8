@@ -77,7 +77,7 @@ See Lua5.3's manual to get usage.
 
 Some routines are new, with some Unicode-spec functions:
 
-###utf8.escape(str) -> utf8 string
+### utf8.escape(str) -> utf8 string
 escape a str to UTF-8 format string. It support several escape format:
 
 %ddd - which ddd is a decimal number at any length:
@@ -89,14 +89,14 @@ escape a str to UTF-8 format string. It support several escape format:
 %x{hhh} same as %xhhh.
 %? - '?' stands for any other character: escape this character.
 
-####Examples:
+#### Examples:
 ```
 local u = utf8.escape
 print(u"%123%u123%{123}%u{123}%xABC%x{ABC}")
 print(u"%%123%?%d%%u")
 ```
 
-###utf8.charpos(s[[, charpos], offset]) -> charpos, code point
+### utf8.charpos(s[[, charpos], offset]) -> charpos, code point
 convert UTF-8 position to byte offset.
 if only offset is given, return byte offset of this UTF-8 char index.
 if charpos and offset is given, a new charpos will calculate, by
@@ -104,7 +104,7 @@ add/subtract UTF-8 char offset to current charpos.
 in all case, it return a new char position, and code point (a number) at
 this position.
 
-###utf8.next(s[, charpos[, offset]]) -> charpos, code point
+### utf8.next(s[, charpos[, offset]]) -> charpos, code point
 iterate though the UTF-8 string s.
 If only s is given, it can used as a iterator:
 ```lua
@@ -118,19 +118,19 @@ add/subtract UTF-8 char offset to current charpos.
 in all case, it return a new char position (in bytes), and code point
 (a number) at this position.
 
-###utf8.insert(s[, idx], substring) -> new_string
+### utf8.insert(s[, idx], substring) -> new_string
 insert a substring to s. If idx is given, insert substring before char at
 this index, otherwise substring will concat to s. idx can be negative.
 
 
-###utf8.remove(s[, start[, stop]]) -> new_string
+### utf8.remove(s[, start[, stop]]) -> new_string
 delete a substring in s. If neither start nor stop is given, delete the
 last UTF-8 char in s, otherwise delete char from start to end of s. if
 stop is given, delete char from start to stop (include start and stop).
 start and stop can be negative.
 
 
-###utf8.width(s[, ambi_is_double[, default_width]]) -> width
+### utf8.width(s[, ambi_is_double[, default_width]]) -> width
 calculate the width of UTF-8 string s. if ambi_is_double is given, the
 ambiguous width character's width is 2, otherwise it's 1.
 fullwidth/doublewidth character's width is 2, and other character's width
@@ -140,7 +140,7 @@ used display a non-character mark for these characters.
 if s is a code point, return the width of this code point.
 
 
-###utf8.widthindex(s, location[, ambi_is_double[, default_width]]) -> idx, offset, width
+### utf8.widthindex(s, location[, ambi_is_double[, default_width]]) -> idx, offset, width
 return the character index at given location in string s. this is a
 reverse operation of utf8.width().
 this function return a index of location, and a offset in in UTF-8
@@ -148,15 +148,15 @@ encoding. e.g. if cursor is at the second column (middle) of the wide
 char, offset will be 2. the width of character at idx is returned, also.
 
 
-###utf8.title(s) -> new_string
-###utf8.fold(s) -> new_string
+### utf8.title(s) -> new_string
+### utf8.fold(s) -> new_string
 convert UTF-8 string s to title-case, or folded case used to compare by
 ignore case.
 if s is a number, it's treat as a code point and return a convert code
 point (number). utf8.lower/utf8.upper has the same extension.
 
 
-###utf8.ncasecmp(a, b) -> [-1,0,1]
+### utf8.ncasecmp(a, b) -> [-1,0,1]
 compare a and b without case, -1 means a < b, 0 means a == b and 1 means a > b.
 
 
