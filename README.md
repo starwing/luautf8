@@ -90,7 +90,7 @@ escape a str to UTF-8 format string. It support several escape format:
 %? - '?' stands for any other character: escape this character.
 
 #### Examples:
-```
+```lua
 local u = utf8.escape
 print(u"%123%u123%{123}%u{123}%xABC%x{ABC}")
 print(u"%%123%?%d%%u")
