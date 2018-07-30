@@ -80,14 +80,14 @@ Some routines are new, with some Unicode-spec functions:
 ### utf8.escape(str) -> utf8 string
 escape a str to UTF-8 format string. It support several escape format:
 
-%ddd - which ddd is a decimal number at any length:
-       change Unicode code point to UTF-8 format.
-%{ddd} - same as %nnn but has bracket around.
-%uddd - same as %ddd, u stands Unicode
-%u{ddd} - same as %{ddd}
-%xhhh - hexadigit version of %ddd
-%x{hhh} same as %xhhh.
-%? - '?' stands for any other character: escape this character.
+ * `%ddd` - which ddd is a decimal number at any length:
+   change Unicode code point to UTF-8 format.
+ * `%{ddd}` - same as `%nnn` but has bracket around.
+ * `%uddd` - same as `%ddd`, u stands Unicode
+ * `%u{ddd}` - same as `%{ddd}`
+ * `%xhhh` - hexadigit version of `%ddd`
+ * `%x{hhh}` same as `%xhhh`.
+ * `%?` - '?' stands for any other character: escape this character.
 
 #### Examples:
 ```lua
