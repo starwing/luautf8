@@ -14,7 +14,26 @@ local s = utf8.escape('%'..table.concat(t, '%'))
 assert(utf8.len(s) == 7)
 assert(get_codes(s) == table.concat(t, ' '))
 
--- tset byte
+-- test offset
+
+local function assert_error(f, msg)
+   local s,e = pcall(f)
+   return assert(not s and e:match(msg))
+end
+
+assert(utf8.offset("中国", 0) == 1)
+assert(utf8.offset("中国", 0,1) == 1)
+assert(utf8.offset("中国", 0,2) == 1)
+assert(utf8.offset("中国", 0,3) == 1)
+assert(utf8.offset("中国", 0,4) == 4)
+assert(utf8.offset("中国", 0,5) == 4)
+assert(utf8.offset("中国", 1) == 1)
+assert_error(function() utf8.offset("中国", 1,2) end,
+             "initial position is a continuation byte")
+assert(utf8.offset("中国", 2) == 4)
+assert(utf8.offset("中国", 3) == nil)
+
+-- test byte
 local function assert_table_equal(t1, t2, i, j)
    i = i or 1
    j = j or #t2
