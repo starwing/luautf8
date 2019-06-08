@@ -71,7 +71,7 @@ local function parse_EastAsianWidth()
 
     for line in io.lines() do
         line = line:gsub("%s*%#.*$", "")
-        if line == "" then goto next end
+        if line ~= "" then
 
         local first, last, mark
         first, mark = line:match "^(%x+)%;(%w+)$"
@@ -95,7 +95,7 @@ local function parse_EastAsianWidth()
             end
         end
 
-        ::next::
+        end
     end
 
     return wide, ambi
@@ -105,7 +105,7 @@ local function parse_CaseFolding()
     local mapping = {}
     for line in io.lines() do
         line = line:gsub("%s*%#.*$", "")
-        if line == "" then goto next end
+        if line ~= "" then
 
         local cp, class, mcp = line:match "^%s*(%x+)%s*;%s*(%w+)%s*;%s*(%x+)"
         assert(cp, line)
@@ -115,7 +115,7 @@ local function parse_CaseFolding()
             mapping[#mapping+1] = { cp = cp, mapping = mcp }
         end
 
-        ::next::
+        end
     end
     return mapping
 end
@@ -133,7 +133,7 @@ local function parse_PropList(f)
 
     for line in io.lines() do
         line = line:gsub("%s*%#.*$", "")
-        if line == "" then goto next end
+        if line ~= "" then
 
         local first, last, mark
         first, mark = line:match "^(%x+)%s*%;%s*([%w_]+)%s*$"
@@ -156,7 +156,7 @@ local function parse_PropList(f)
             end
         end
 
-        ::next::
+        end
     end
 
     table.sort(ranges)
@@ -175,7 +175,7 @@ local function get_ranges(list, func, proc)
         elseif v.cp then
             v_cp, v_offset = v.cp, v.offset
         end
-        if not res then goto next end
+        if res then
         if first and
                 (not offset or offset == v_offset) and
                 (not step or step == v_cp - last) then
@@ -190,7 +190,7 @@ local function get_ranges(list, func, proc)
             offset = v_offset
         end
 
-        ::next::
+        end
     end
     if first then
         local r = { first = first, last = last, step = step, offset = offset }
