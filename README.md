@@ -96,15 +96,15 @@ print(u"%123%u123%{123}%u{123}%xABC%x{ABC}")
 print(u"%%123%?%d%%u")
 ```
 
-### utf8.charpos(s[[, charpos], offset]) -> charpos, code point
+### utf8.charpos(s[[, charpos], index]) -> charpos, code point
 convert UTF-8 position to byte offset.
-if only offset is given, return byte offset of this UTF-8 char index.
-if charpos and offset is given, a new charpos will calculate, by
-add/subtract UTF-8 char offset to current charpos.
-in all case, it return a new char position, and code point (a number) at
-this position.
+if only `index` is given, return byte offset of this UTF-8 char index.
+if both `charpos` and `index` is given, a new `charpos` will be
+calculated, by add/subtract UTF-8 char `index` to current `charpos`.
+in all cases, it returns a new char position, and code point (a
+number) at this position.
 
-### utf8.next(s[, charpos[, offset]]) -> charpos, code point
+### utf8.next(s[, charpos[, index]]) -> charpos, code point
 iterate though the UTF-8 string s.
 If only s is given, it can used as a iterator:
 ```lua
@@ -112,8 +112,8 @@ for pos, code in utf8.next, "utf8-string" do
    -- ...
 end
 ```
-if only charpos is given, return the next byte offset of in string.
-if charpos and offset is given, a new charpos will calculate, by
+if only `charpos` is given, return the next byte offset of in string.
+if `charpos` and `index` is given, a new `charpos` will be calculated, by
 add/subtract UTF-8 char offset to current charpos.
 in all case, it return a new char position (in bytes), and code point
 (a number) at this position.

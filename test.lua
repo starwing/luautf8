@@ -2,7 +2,7 @@ local utf8 = require 'lua-utf8'
 local unpack = unpack or table.unpack
 
 local function get_codes(s)
-    return table.concat({utf8.byte(s, 1, -1)}, ' ')
+   return table.concat({utf8.byte(s, 1, -1)}, ' ')
 end
 
 local t = { 20985, 20984, 26364, 25171, 23567, 24618, 20861 }
@@ -31,7 +31,8 @@ assert(utf8.offset("中国", 1) == 1)
 assert_error(function() utf8.offset("中国", 1,2) end,
              "initial position is a continuation byte")
 assert(utf8.offset("中国", 2) == 4)
-assert(utf8.offset("中国", 3) == nil)
+assert(utf8.offset("中国", 3) == 7)
+assert(utf8.offset("中国", 4) == nil)
 
 -- test byte
 local function assert_table_equal(t1, t2, i, j)
@@ -65,6 +66,8 @@ end
 assert(get_codes(utf8.sub(s, 2, -2)) == table.concat(t, ' ', 2, #t-1))
 assert(get_codes(utf8.sub(s, -100)) == table.concat(t, ' '))
 assert(get_codes(utf8.sub(s, -100, -200)) == "")
+assert(get_codes(utf8.sub(s, -100, -100)) == "")
+assert(get_codes(utf8.sub(s, -100, 0)) == "")
 assert(get_codes(utf8.sub(s, -200, -100)) == "")
 assert(get_codes(utf8.sub(s, 100, 200)) == "")
 assert(get_codes(utf8.sub(s, 200, 100)) == "")
@@ -84,6 +87,7 @@ assert(utf8.remove("abcdef", 4, 3) == "abcdef")
 assert(utf8.remove("abcdef", -3, -3) == "abcef")
 assert(utf8.remove("abcdef", 100) == "abcdef")
 assert(utf8.remove("abcdef", -100) == "")
+assert(utf8.remove("abcdef", -100, 0) == "abcdef")
 assert(utf8.remove("abcdef", -100, -200) == "abcdef")
 assert(utf8.remove("abcdef", -200, -100) == "abcdef")
 assert(utf8.remove("abcdef", 100, 200) == "abcdef")
@@ -91,6 +95,8 @@ assert(utf8.remove("abcdef", 200, 100) == "abcdef")
 
 do
     local s = utf8.escape "a%255bc"
+    assert(utf8.len(s, 4))
+    assert(string.len(s, 6))
     assert(utf8.charpos(s) == 1)
     assert(utf8.charpos(s, 0) == 1)
     assert(utf8.charpos(s, 1) == 1)
@@ -106,7 +112,7 @@ do
     assert(utf8.charpos(s, -5) == nil)
     assert(utf8.charpos(s, -6) == nil)
     assert(utf8.charpos(s, 3, -1) == 2)
-    assert(utf8.charpos(s, 3, 0) == 3)
+    assert(utf8.charpos(s, 3, 0) == 2)
     assert(utf8.charpos(s, 3, 1) == 4)
     assert(utf8.charpos(s, 6, -3) == 2)
     assert(utf8.charpos(s, 6, -4) == 1)
@@ -115,8 +121,8 @@ end
 
 local idx = 1
 for pos, code in utf8.next, s do
-    assert(t[idx] == code)
-    idx = idx + 1
+   assert(t[idx] == code)
+   idx = idx + 1
 end
 
 assert(utf8.ncasecmp("abc", "AbC") == 0)
@@ -129,3 +135,6 @@ assert(utf8.ncasecmp("abZdef", "abcZef") == 1)
 assert(utf8.gsub("x^[]+$", "%p", "%%%0") == "x%^%[%]%+%$")
 
 print "OK"
+
+-- cc: run='rm -fr *.gc*; lua -- $input'
+

@@ -1,12 +1,12 @@
 -- generate useful data from Unicode Character Database.
--- you should have these files in ucd folder in current path:
---   - ucd\CaseFolding.txt
---   - ucd\DerivedCoreProperties.txt
---   - ucd\EastAsianWidth.txt
---   - ucd\PropList.txt
---   - ucd\UnicodeData.txt
+-- you should have these files in UCD folder in current path:
+--   - UCD\CaseFolding.txt
+--   - UCD\DerivedCoreProperties.txt
+--   - UCD\EastAsianWidth.txt
+--   - UCD\PropList.txt
+--   - UCD\UnicodeData.txt
 --  
---  files can be downloaded at: http://unicode.org/Public/UCD/latest/ucd/
+--  files can be downloaded at: http://unicode.org/Public/UCD/latest/UCD/
 
 
 local function parse_UnicodeData()
@@ -272,15 +272,20 @@ io.write [[
 #ifndef unidata_h
 #define unidata_h
 
+#ifndef utfint
+# define utfint utfint
+typedef unsigned int utfint;
+#endif
+
 typedef struct range_table {
-    unsigned int first;
-    unsigned int last;
+    utfint first;
+    utfint last;
     int step;
 } range_table;
 
 typedef struct conv_table {
-    unsigned int first;
-    unsigned int last;
+    utfint first;
+    utfint last;
     int step;
     int offset;
 } conv_table;
@@ -293,33 +298,33 @@ do
         write_ranges(name, r)
     end
 
-    io.input "ucd/DerivedCoreProperties.txt"
+    io.input "UCD/DerivedCoreProperties.txt"
     ranges("alpha", "Alphabetic")
 
-    io.input "ucd/DerivedCoreProperties.txt"
+    io.input "UCD/DerivedCoreProperties.txt"
     ranges("lower", "Lowercase")
 
-    io.input "ucd/DerivedCoreProperties.txt"
+    io.input "UCD/DerivedCoreProperties.txt"
     ranges("upper", "Uppercase")
 
-    io.input "ucd/PropList.txt"
+    io.input "UCD/PropList.txt"
     ranges("xdigit", "Hex_Digit")
 
-    io.input "ucd/PropList.txt"
+    io.input "UCD/PropList.txt"
     ranges("space", "White_Space")
 
-    io.input "ucd/DerivedCoreProperties.txt"
+    io.input "UCD/DerivedCoreProperties.txt"
     ranges("unprintable", "Default_Ignorable_Code_Point")
 
-    io.input "ucd/DerivedCoreProperties.txt"
+    io.input "UCD/DerivedCoreProperties.txt"
     ranges("graph", "Grapheme_Base")
 
-    io.input "ucd/DerivedCoreProperties.txt"
+    io.input "UCD/DerivedCoreProperties.txt"
     ranges("compose", "Grapheme_Extend")
 end
 
 do
-    io.input  "ucd/UnicodeData.txt"
+    io.input  "UCD/UnicodeData.txt"
     local ucd = parse_UnicodeData()
     local function set(s)
         local hasht = {}
@@ -353,7 +358,7 @@ do
 end
 
 do
-    io.input "ucd/CaseFolding.txt"
+    io.input "UCD/CaseFolding.txt"
     local mapping = parse_CaseFolding()
     write_convtable("tofold", get_ranges(mapping, function(data)
         data.offset = data.mapping - data.cp
@@ -362,7 +367,7 @@ do
 end
 
 do
-    io.input  "ucd/EastAsianWidth.txt"
+    io.input  "UCD/EastAsianWidth.txt"
     local wide, ambi = parse_EastAsianWidth()
     write_ranges("doublewidth", get_ranges(wide))
     write_ranges("ambiwidth", get_ranges(ambi))
