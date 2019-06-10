@@ -894,7 +894,6 @@ static const char *match (MatchState *ms, const char *s, const char *p) {
         break;
       }
       case ')': {  /* end capture */
-                  printf("end capture:\n");
         s = end_capture(ms, s, p + 1);
         break;
       }
