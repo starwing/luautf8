@@ -165,7 +165,7 @@ function f(a,b) return utf8.gsub(a,'.',b) end
 assert(utf8.gsub("trocar tudo em |teste|b| é |beleza|al|", "|([^|]*)|([^|]*)|", f) ==
             "trocar tudo em bbbbb é alalalalalal")
 
-local function dostring (s) return load(s)() or "" end
+local function dostring (s) return (loadstring or load)(s)() or "" end
 assert(utf8.gsub("alo $a=1$ novamente $return a$", "$([^$]*)%$", dostring) ==
             "alo  novamente 1")
 
