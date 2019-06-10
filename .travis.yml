@@ -15,7 +15,7 @@ env:
 branches:
   only:
     - master
-    - new
+    - develop
 
 before_install:
   - pip install --user hererocks urllib3[secure] cpp-coveralls
