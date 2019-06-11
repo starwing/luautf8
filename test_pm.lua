@@ -102,6 +102,7 @@ end
 local abc = utf8.char(range(0, 255));
 
 assert(utf8.len(abc) == 256)
+assert(string.len(abc) == 384)
 
 function strset (p)
   local res = {s=''}
@@ -109,7 +110,8 @@ function strset (p)
   return res.s
 end;
 
-assert(utf8.len(strset('[\200-\210]')) == 11)
+local E = utf8.escape
+assert(utf8.len(strset(E'[%200-%210]')) == 11)
 
 assert(strset('[a-z]') == "abcdefghijklmnopqrstuvwxyz")
 assert(strset('[a-z%d]') == strset('[%da-uu-z]'))
@@ -118,8 +120,8 @@ assert(strset('[^%W]') == strset('[%w]'))
 assert(strset('[]%%]') == '%]')
 assert(strset('[a%-z]') == '-az')
 assert(strset('[%^%[%-a%]%-b]') == '-[]^ab')
-assert(strset('%Z') == strset('[\1-\255]'))
-assert(strset('.') == strset('[\1-\255%z]'))
+assert(strset('%Z') == strset(E'[%1-%255]'))
+assert(strset('.') == strset(E'[%1-%255%%z]'))
 print('+');
 
 assert(utf8.match("alo xyzK", "(%w+)K") == "xyz")
