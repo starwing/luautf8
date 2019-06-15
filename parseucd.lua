@@ -71,31 +71,29 @@ local function parse_EastAsianWidth()
 
     for line in io.lines() do
         line = line:gsub("%s*%#.*$", "")
-        if line == "" then goto next end
-
-        local first, last, mark
-        first, mark = line:match "^(%x+)%;(%w+)$"
-        if first then
-            last = first
-        else
-            first, last, mark = line:match "^(%x+)%.%.(%x+)%;(%w+)$"
-            assert(first, line)
-        end
-
-        local first = tonumber(first, 16)
-        local last = tonumber(last, 16)
-
-        if mark == 'W' or mark == 'F' then
-            for i = first, last do
-                wide[#wide+1] = i
+        if line ~= "" then
+            local first, last, mark
+            first, mark = line:match "^(%x+)%;(%w+)$"
+            if first then
+                last = first
+            else
+                first, last, mark = line:match "^(%x+)%.%.(%x+)%;(%w+)$"
+                assert(first, line)
             end
-        elseif mark == 'A' then
-            for i = first, last do
-                ambi[#ambi+1] = i
+
+            local first = tonumber(first, 16)
+            local last = tonumber(last, 16)
+
+            if mark == 'W' or mark == 'F' then
+                for i = first, last do
+                    wide[#wide+1] = i
+                end
+            elseif mark == 'A' then
+                for i = first, last do
+                    ambi[#ambi+1] = i
+                end
             end
         end
-
-        ::next::
     end
 
     return wide, ambi
@@ -105,17 +103,15 @@ local function parse_CaseFolding()
     local mapping = {}
     for line in io.lines() do
         line = line:gsub("%s*%#.*$", "")
-        if line == "" then goto next end
-
-        local cp, class, mcp = line:match "^%s*(%x+)%s*;%s*(%w+)%s*;%s*(%x+)"
-        assert(cp, line)
-        if class == 'C' or class == 'S' then
-            cp = tonumber(cp, 16)
-            mcp = tonumber(mcp, 16)
-            mapping[#mapping+1] = { cp = cp, mapping = mcp }
+        if line ~= "" then
+            local cp, class, mcp = line:match "^%s*(%x+)%s*;%s*(%w+)%s*;%s*(%x+)"
+            assert(cp, line)
+            if class == 'C' or class == 'S' then
+                cp = tonumber(cp, 16)
+                mcp = tonumber(mcp, 16)
+                mapping[#mapping+1] = { cp = cp, mapping = mcp }
+            end
         end
-
-        ::next::
     end
     return mapping
 end
@@ -133,30 +129,28 @@ local function parse_PropList(f)
 
     for line in io.lines() do
         line = line:gsub("%s*%#.*$", "")
-        if line == "" then goto next end
+        if line ~= "" then
+            local first, last, mark
+            first, mark = line:match "^(%x+)%s*%;%s*([%w_]+)%s*$"
+            if first then
+                last = first
+            else
+                first, last, mark = line:match "^(%x+)%.%.(%x+)%s*%;%s*([%w_]+)%s*$"
+                assert(first, line)
+            end
 
-        local first, last, mark
-        first, mark = line:match "^(%x+)%s*%;%s*([%w_]+)%s*$"
-        if first then
-            last = first
-        else
-            first, last, mark = line:match "^(%x+)%.%.(%x+)%s*%;%s*([%w_]+)%s*$"
-            assert(first, line)
-        end
+            local first = tonumber(first, 16)
+            local last = tonumber(last, 16)
 
-        local first = tonumber(first, 16)
-        local last = tonumber(last, 16)
-
-        if f(mark) then
-            for i = first, last do
-                if not lookup[i] then
-                    lookup[i] = true
-                    ranges[#ranges+1] = i
+            if f(mark) then
+                for i = first, last do
+                    if not lookup[i] then
+                        lookup[i] = true
+                        ranges[#ranges+1] = i
+                    end
                 end
             end
         end
-
-        ::next::
     end
 
     table.sort(ranges)
@@ -175,22 +169,21 @@ local function get_ranges(list, func, proc)
         elseif v.cp then
             v_cp, v_offset = v.cp, v.offset
         end
-        if not res then goto next end
-        if first and
-                (not offset or offset == v_offset) and
-                (not step or step == v_cp - last) then
-            step = v_cp - last
-            last = v_cp
-        else
-            if first then
-                local r = { first = first, last = last, step = step, offset = offset }
-                ranges[#ranges+1] = r
+        if res then
+            if first and
+                    (not offset or offset == v_offset) and
+                    (not step or step == v_cp - last) then
+                step = v_cp - last
+                last = v_cp
+            else
+                if first then
+                    local r = { first = first, last = last, step = step, offset = offset }
+                    ranges[#ranges+1] = r
+                end
+                first, last, step = v_cp, v_cp
+                offset = v_offset
             end
-            first, last, step = v_cp, v_cp
-            offset = v_offset
         end
-
-        ::next::
     end
     if first then
         local r = { first = first, last = last, step = step, offset = offset }
