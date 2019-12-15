@@ -142,7 +142,7 @@ static int find_in_range (range_table *t, size_t size, utfint ch) {
       begin = mid + 1;
     else if (t[mid].first > ch)
       end = mid;
-    else 
+    else
       return (ch - t[mid].first) % t[mid].step == 0;
   }
 
@@ -1235,7 +1235,11 @@ static int Lutf8_gsub (lua_State *L) {
 
 /* lua module import interface */
 
-#define UTF8PATT	"[\0-\x7F\xC2-\xF4][\x80-\xBF]*"
+#if LUA_VERSION_NUM >= 502
+static const char UTF8PATT[] = "[\0-\x7F\xC2-\xF4][\x80-\xBF]*";
+#else
+static const char UTF8PATT[] = "[%z\1-\x7F\xC2-\xF4][\x80-\xBF]*";
+#endif
 
 LUALIB_API int luaopen_utf8 (lua_State *L) {
   luaL_Reg libs[] = {
@@ -1276,7 +1280,7 @@ LUALIB_API int luaopen_utf8 (lua_State *L) {
   luaL_register(L, NULL, libs);
 #endif
 
-  lua_pushliteral(L, UTF8PATT);
+  lua_pushlstring(L, UTF8PATT, sizeof(UTF8PATT)-1);
   lua_setfield(L, -2, "charpattern");
 
   return 1;
