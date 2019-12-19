@@ -18,6 +18,10 @@ typedef unsigned int utfint;
 #define UTF8_MAXCP   0x10FFFFu
 #define iscont(p)	((*(p) & 0xC0) == 0x80)
 
+#ifndef LUA_QL
+# define LUA_QL(x) "'" x "'"
+#endif
+
 static int utf8_invalid (utfint ch)
 { return (ch > UTF8_MAXCP || (0xD800u <= ch && ch <= 0xDFFFu)); }
 
