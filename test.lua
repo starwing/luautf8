@@ -213,6 +213,13 @@ assert_fail(function() utf8.gsub("a", ".", "%z") end,
    "invalid use of '%%' in replacement string")
 assert(utf8.find("abcabc", "ab", -10) == 1)
 
+-- test charpattern
+do
+  local subj, n = "school=школа", 0
+  for c in string.gmatch(subj, utf8.charpattern) do n = n+1 end
+  assert(n == utf8.len(subj))
+end
+
 
 print "OK"
 
