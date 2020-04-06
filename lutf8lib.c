@@ -476,7 +476,7 @@ static int Lutf8_insert (lua_State *L) {
 
 static int Lutf8_remove (lua_State *L) {
   const char *e, *s = check_utf8(L, 1, &e);
-  lua_Integer posi = luaL_checkinteger(L, 2);
+  lua_Integer posi = luaL_optinteger(L, 2, -1);
   lua_Integer pose = luaL_optinteger(L, 3, -1);
   if (!utf8_range(s, e, &posi, &pose))
     lua_settop(L, 1);
