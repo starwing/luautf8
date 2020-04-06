@@ -13,10 +13,10 @@
 
 typedef unsigned int utfint;
 
-#define UTF8_BUFFSZ	8
-#define UTF8_MAX     0x7FFFFFFFu
-#define UTF8_MAXCP   0x10FFFFu
-#define iscont(p)	((*(p) & 0xC0) == 0x80)
+#define UTF8_BUFFSZ 8
+#define UTF8_MAX    0x7FFFFFFFu
+#define UTF8_MAXCP  0x10FFFFu
+#define iscont(p)   ((*(p) & 0xC0) == 0x80)
 
 #ifndef LUA_QL
 # define LUA_QL(x) "'" x "'"
@@ -42,7 +42,7 @@ static size_t utf8_encode (char *buff, utfint x) {
   return n;
 }
 
-static const char *utf8_decode (const char *s, utfint *val) {
+static const char *utf8_decode (const char *s, utfint *val, int strict) {
   static const utfint limits[] =
   {~0u, 0x80u, 0x800u, 0x10000u, 0x200000u, 0x4000000u};
   unsigned int c = (unsigned char)s[0];
@@ -61,6 +61,11 @@ static const char *utf8_decode (const char *s, utfint *val) {
     if (count > 5 || res > UTF8_MAX || res < limits[count])
       return NULL;  /* invalid byte sequence */
     s += count;  /* skip continuation bytes read */
+  }
+  if (strict) {
+    /* check for invalid code points; too large or surrogates */
+    if (res > UTF8_MAXCP || (0xD800u <= res && res <= 0xDFFFu))
+      return NULL;
   }
   if (val) *val = res;
   return s + 1;  /* +1 to include first byte */
@@ -234,7 +239,7 @@ static const char *to_utf8 (lua_State *L, int idx, const char **end) {
 }
 
 static const char *utf8_safe_decode (lua_State *L, const char *p, utfint *pval) {
-  p = utf8_decode(p, pval);
+  p = utf8_decode(p, pval, 0);
   if (p == NULL) luaL_error(L, "invalid UTF-8 code");
   return p;
 }
@@ -262,13 +267,11 @@ static int Lutf8_len (lua_State *L) {
   luaL_argcheck(L, --pose < (lua_Integer)len, 3,
                    "final position out of string");
   for (n = 0, p=s+posi, e=s+pose+1; p < e; ++n) {
-    if ((*p & 0xFF) < 0xC0)
-      ++p;
-    else if (lax)
+    if (lax)
       p = utf8_next(p, e);
     else {
       utfint ch;
-      const char *np = utf8_decode(p, &ch);
+      const char *np = utf8_decode(p, &ch, !lax);
       if (np == NULL || utf8_invalid(ch)) {
         lua_pushnil(L);
         lua_pushinteger(L, p - s + 1);
@@ -495,7 +498,7 @@ static int push_offset (lua_State *L, const char *s, const char *e, lua_Integer 
   else if (p = s+offset-1, iscont(p))
     p = utf8_prev(s, p);
   if (p == NULL || p == e) return 0;
-  utf8_decode(p, &ch);
+  utf8_decode(p, &ch, 0);
   lua_pushinteger(L, p-s+1);
   lua_pushinteger(L, ch);
   return 2;
@@ -691,11 +694,11 @@ static const char *match (MatchState *ms, const char *s, const char *p);
 
 /* maximum recursion depth for 'match' */
 #if !defined(MAXCCALLS)
-#define MAXCCALLS	200
+#define MAXCCALLS       200
 #endif
 
-#define L_ESC		'%'
-#define SPECIALS	"^$*+?.([%-"
+#define L_ESC           '%'
+#define SPECIALS        "^$*+?.([%-"
 
 static int check_capture (MatchState *ms, int l) {
   l -= '1';
@@ -917,9 +920,9 @@ static const char *match (MatchState *ms, const char *s, const char *p) {
                                  LUA_QL("%%f") " in pattern");
             ep = classend(ms, p);  /* points to what is next */
             if (s != ms->src_init)
-              utf8_decode(utf8_prev(ms->src_init, s), &previous);
+              utf8_decode(utf8_prev(ms->src_init, s), &previous, 0);
             if (s != ms->src_end)
-              utf8_decode(s, &current);
+              utf8_decode(s, &current, 0);
             if (!matchbracketclass(ms, previous, p, ep - 1) &&
                  matchbracketclass(ms, current, p, ep - 1)) {
               p = ep; goto init;  /* return match(ms, s, ep); */
