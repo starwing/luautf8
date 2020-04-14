@@ -8,10 +8,9 @@
 #include <assert.h>
 #include <string.h>
 
+#include "unidata.h"
 
 /* UTF-8 string operations */
-
-typedef unsigned int utfint;
 
 #define UTF8_BUFFSZ 8
 #define UTF8_MAX    0x7FFFFFFFu
@@ -117,8 +116,6 @@ static int utf8_range(const char *s, const char *e, lua_Integer *i, lua_Integer 
 
 
 /* Unicode character categories */
-
-#include "unidata.h"
 
 #define table_size(t) (sizeof(t)/sizeof((t)[0]))
 
