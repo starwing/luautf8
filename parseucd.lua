@@ -5,7 +5,7 @@
 --   - UCD\EastAsianWidth.txt
 --   - UCD\PropList.txt
 --   - UCD\UnicodeData.txt
---  
+--
 --  files can be downloaded at: http://unicode.org/Public/UCD/latest/UCD/
 
 
@@ -15,7 +15,7 @@ local function parse_UnicodeData()
     -- 1. name
     -- 2. general category
     -- 3. canonical combining class
-    -- 4. bidi class 
+    -- 4. bidi class
     -- 5. decomposition type/mapping
     -- 6. numberic type/value
     -- 7. numberic type/value
@@ -81,8 +81,8 @@ local function parse_EastAsianWidth()
                 assert(first, line)
             end
 
-            local first = tonumber(first, 16)
-            local last = tonumber(last, 16)
+            first = tonumber(first, 16)
+            last = tonumber(last, 16)
 
             if mark == 'W' or mark == 'F' then
                 for i = first, last do
@@ -139,8 +139,8 @@ local function parse_PropList(f)
                 assert(first, line)
             end
 
-            local first = tonumber(first, 16)
-            local last = tonumber(last, 16)
+            first = tonumber(first, 16)
+            last = tonumber(last, 16)
 
             if f(mark) then
                 for i = first, last do
@@ -157,7 +157,7 @@ local function parse_PropList(f)
     return ranges, lookup
 end
 
-local function get_ranges(list, func, proc)
+local function get_ranges(list, func)
     local first, last, step, offset
     local ranges = {}
     for i = 1, #list do
@@ -165,7 +165,7 @@ local function get_ranges(list, func, proc)
         local v = list[i]
         local res = not func or func(v)
         if type(v) == 'number' then
-            v_cp, v_offset = v
+            v_cp, v_offset = v, nil
         elseif v.cp then
             v_cp, v_offset = v.cp, v.offset
         end
@@ -180,7 +180,7 @@ local function get_ranges(list, func, proc)
                     local r = { first = first, last = last, step = step, offset = offset }
                     ranges[#ranges+1] = r
                 end
-                first, last, step = v_cp, v_cp
+                first, last, step = v_cp, v_cp, nil
                 offset = v_offset
             end
         end
@@ -192,6 +192,7 @@ local function get_ranges(list, func, proc)
     return ranges
 end
 
+--[[
 local function merge_ranges(...)
     local ranges = {}
     local lookup = {}
@@ -238,6 +239,7 @@ local function diff_ranges(base, sub, force)
     end
     return get_ranges(ranges)
 end
+--]]
 
 local function write_ranges(name, ranges)
     io.write("static struct range_table "..name.."_table[] = {\n")
