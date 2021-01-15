@@ -433,9 +433,9 @@ static int Lutf8_escape (lua_State *L) {
       case '4': case '5': case '6': case '7':
       case '8': case '9': case '{':
         break;
-      case 'x': case 'X': hex = 1; /* FALLTHOUGH */
+      case 'x': case 'X': hex = 1; /* fall through */
       case 'u': case 'U': if (s+1 < e) { ++s; break; }
-                            /* FALLTHOUGH */
+                            /* fall through */
       default:
         s = utf8_safe_decode(L, s, &ch);
         goto next;
@@ -961,7 +961,7 @@ static const char *match (MatchState *ms, const char *s, const char *p) {
             }
             case '+':  /* 1 or more repetitions */
               s = next_s;  /* 1 match already done */
-              /* go through */
+              /* fall through */
             case '*':  /* 0 or more repetitions */
               s = max_expand(ms, s, p, ep);
               break;
@@ -1051,6 +1051,7 @@ static int find_aux (lua_State *L, int find) {
   const char *ep, *p = check_utf8(L, 2, &ep);
   lua_Integer idx = luaL_optinteger(L, 3, 1);
   const char *init;
+  if (!idx) idx = 1;
   init = utf8_relat(s, es, idx);
   if (init == NULL) {
     if (idx > 0) {
@@ -1291,7 +1292,7 @@ LUALIB_API int luaopen_utf8 (lua_State *L) {
 }
 
 /* win32cc: flags+='-Wall -Wextra -s -O2 -mdll -DLUA_BUILD_AS_DLL'
- * win32cc: libs+='-llua53.dll' output='lua-utf8.dll'
+ * win32cc: libs+='-llua54.dll' output='lua-utf8.dll'
  * win32cc: run='lua.exe test.lua'
  * maccc: run='lua -- test_compat.lua'
  * maccc: flags+='-g --coverage -bundle -undefined dynamic_lookup' output='lua-utf8.so' */
