@@ -221,6 +221,102 @@ do
 end
 
 
+-- test isvalid
+local good_strings = {
+   '',
+   'A',
+   'abcdefghijklmnopqrstuvwxyz',
+   "``",
+   "@",
+   'नमस्ते',
+   '中国',
+   '日本語０１２３４５６７８９０。',
+   'ひらがな',
+   'Καλημέρα',
+   'АБВГ',
+   '⡌⠁⠧⠑ ⠼',
+   '∑ f(i)',
+   'Οὐχὶ ταὐτὰ παρίσταταί μοι γιγνώσκειν, ὦ ἄνδρες ᾿Αθηναῖοι, ὅταν τ᾿ εἰς τὰ πράγματα ἀποβλέψω καὶ ὅταν πρὸς τοὺς',
+   'ABCDEFGHIJKLMNOPQRSTUVWXYZ /0123456789 abcdefghijklmnopqrstuvwxyz £©µÀÆÖÞßéöÿАБВГДабвгд∀∂∈ℝ∧∪≡∞ ↑↗↨↻⇣',
+   'გთხოვთ ახლავე გაიაროთ რეგისტრაცია Unicode-ის მეათე საერთაშორისო კონფერენციაზე დასასწრებად, რომელიც გაიმართება 10-12 მარტს',
+   '\000' -- NUL is valid in UTF-8
+}
+
+for _, good in ipairs(good_strings) do
+   assert(utf8.isvalid(good))
+end
+
+assert(not utf8.isvalid("\255")) -- illegal byte 0xFF
+assert(not utf8.isvalid("abc\254def")) -- illegal byte 0xFE
+
+assert(not utf8.isvalid("123 \223")) -- truncated code unit 0xDF
+assert(not utf8.isvalid("123 \239\191")) -- truncated code unit 0xEF BF
+assert(not utf8.isvalid("123 \240\191")) -- truncated code unit 0xF0 BF
+assert(not utf8.isvalid("123 \240\191\191")) -- truncated code unit 0xF0 BF BF
+
+assert(not utf8.isvalid('\223ABC')) -- code unit 0xDF ended too soon and went to ASCII
+assert(not utf8.isvalid('\239\191ABC')) -- code unit 0xEF BF ended too soon and went to ASCII
+assert(not utf8.isvalid('\240\191ABC')) -- code unit 0xF0 BF ended too soon and went to ASCII
+assert(not utf8.isvalid('\240\191\191ABC')) -- code unit 0xF0 BF BF ended too soon and went to ASCII
+
+assert(not utf8.isvalid('\223中')) -- code unit 0xDF ended too soon and went to another multi-byte char
+assert(not utf8.isvalid('\239\191中')) -- code unit 0xEF BF ended too soon and went to another multi-byte char
+assert(not utf8.isvalid('\240\191中')) -- code unit 0xF0 BF ended too soon and went to another multi-byte char
+assert(not utf8.isvalid('\240\191\191中')) -- code unit 0xF0 BF BF ended too soon and went to another multi-byte char
+
+assert(utf8.isvalid('\237\159\191')) -- U+D7FF is valid
+assert(not utf8.isvalid('\237\160\128')) -- U+D800; reserved for UTF-16 surrogate
+assert(not utf8.isvalid('\237\175\191')) -- U+DBFF; reserved for UTF-16 surrogate
+assert(not utf8.isvalid('\237\191\191')) -- U+DFFF; reserved for UTF-16 surrogate
+assert(utf8.isvalid('\238\128\128')) -- U+E000 is valid
+
+assert(utf8.isvalid('\244\143\191\191')) -- U+10FFFF is valid
+assert(not utf8.isvalid('\244\144\128\128')) -- U+110000 is not valid
+assert(not utf8.isvalid('\247\191\191\191')) -- U+1FFFFF is not valid
+
+assert(not utf8.isvalid('\128')) -- continuation byte outside a multi-byte char
+assert(not utf8.isvalid('A\128A')) -- continuation byte outside a multi-byte char
+assert(not utf8.isvalid('中\128')) -- continuation byte outside a multi-byte char
+
+assert(not utf8.isvalid('\193\191')) -- overlong code unit
+assert(not utf8.isvalid('\224\159\191')) -- overlong code unit
+assert(not utf8.isvalid('\240\143\191\191')) -- overlong code unit
+
+-- test clean
+local cleaned, was_clean
+
+for _, good in ipairs(good_strings) do
+   cleaned, was_clean = utf8.clean(good)
+   assert(cleaned == good)
+   assert(was_clean)
+end
+
+cleaned, was_clean = utf8.clean('A\128A')
+assert(cleaned == 'A�A')
+assert(not was_clean)
+
+cleaned, was_clean = utf8.clean('\128')
+assert(cleaned == '�')
+assert(not was_clean)
+
+cleaned, was_clean = utf8.clean('1\193\1912\224\159\1913\240\143\191\191', '???')
+assert(cleaned == '1???2???3???')
+assert(not was_clean)
+
+cleaned, was_clean = utf8.clean('\237\160\128\237\175\191\237\191\191')
+assert(cleaned == '�') -- an entire sequence of bad bytes just gets replaced with one replacement char
+assert(not was_clean)
+
+cleaned, was_clean = utf8.clean('123 \223', '')
+assert(cleaned == '123 ')
+assert(not was_clean)
+
+cleaned, was_clean = utf8.clean('\239\191中', '')
+assert(cleaned == '中')
+assert(not was_clean)
+
+assert_error(function() utf8.clean('abc', '\255') end, "replacement string must be valid UTF%-8")
+
 print "OK"
 
 -- cc: run='lua -- $input'
