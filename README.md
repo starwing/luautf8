@@ -15,11 +15,12 @@ characters and check characters' category.
 It mainly used to compatible with Lua's own string module, it passed all
 string and pattern matching test in lua test suite[2].
 
-It also add some useful routines against UTF-8 features, some like:
+It also adds some useful routines against UTF-8 features, such as:
 - a convenient interface to escape Unicode sequence in string. 
 - string insert/remove, since UTF-8 substring extract may expensive.
 - calculate Unicode width, useful when implement e.g. console emulator.
 - a useful interface to translate Unicode offset and byte offset.
+- checking UTF-8 strings for validity and removing invalid byte sequences.
 
 Note that to avoid conflict with the Lua5.3's buitin library 'utf8',
 this library produce a file like lua-utf8.dll or lua-utf8.so. so use
@@ -160,6 +161,17 @@ point (number). utf8.lower/utf8.upper has the same extension.
 
 ### utf8.ncasecmp(a, b) -> [-1,0,1]
 compare a and b without case, -1 means a < b, 0 means a == b and 1 means a > b.
+
+
+### utf8.isvalid(s) -> boolean
+check whether s is a valid UTF-8 string or not.
+
+
+### utf8.clean(s[, replacement_string]) -> cleaned_string, was_valid
+replace any invalid UTF-8 byte sequences in s with the replacement string.
+if no replacement string is provided, the default is "�" (REPLACEMENT CHARACTER U+FFFD).
+note that *any* number of consecutive invalid bytes will be replaced by a single copy of the replacement string.
+the 2nd return value is true if the original string was already valid (meaning no replacements were made).
 
 
 Improvement needed
