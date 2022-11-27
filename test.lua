@@ -317,6 +317,43 @@ assert(not was_clean)
 
 assert_error(function() utf8.clean('abc', '\255') end, "replacement string must be valid UTF%-8")
 
+
+-- test invalidoffset
+for _, good in ipairs(good_strings) do
+   assert(utf8.invalidoffset(good) == nil)
+end
+
+assert(utf8.invalidoffset("\255") == 1)
+assert(utf8.invalidoffset("\255", 0) == 1)
+assert(utf8.invalidoffset("\255", 1) == 1)
+assert(utf8.invalidoffset("\255", 2) == nil)
+assert(utf8.invalidoffset("\255", -1) == 1)
+assert(utf8.invalidoffset("\255", -2) == 1)
+assert(utf8.invalidoffset("\255", -3) == 1)
+
+assert(utf8.invalidoffset("abc\254def") == 4)
+assert(utf8.invalidoffset("abc\254def", 0) == 4)
+assert(utf8.invalidoffset("abc\254def", 1) == 4)
+assert(utf8.invalidoffset("abc\254def", 2) == 4)
+assert(utf8.invalidoffset("abc\254def", 3) == 4)
+assert(utf8.invalidoffset("abc\254def", 4) == 4)
+assert(utf8.invalidoffset("abc\254def", 5) == nil)
+assert(utf8.invalidoffset("abc\254def", 6) == nil)
+assert(utf8.invalidoffset("abc\254def", -1) == nil)
+assert(utf8.invalidoffset("abc\254def", -2) == nil)
+assert(utf8.invalidoffset("abc\254def", -3) == nil)
+assert(utf8.invalidoffset("abc\254def", -4) == 4)
+assert(utf8.invalidoffset("abc\254def", -5) == 4)
+
+assert(utf8.invalidoffset('\237\160\128\237\175\191\237\191\191', 0) == 1)
+assert(utf8.invalidoffset('\237\160\128\237\175\191\237\191\191', 1) == 1)
+assert(utf8.invalidoffset('\237\160\128\237\175\191\237\191\191', 2) == 2)
+assert(utf8.invalidoffset('\237\160\128\237\175\191\237\191\191', 3) == 3)
+assert(utf8.invalidoffset('\237\160\128\237\175\191\237\191\191', 4) == 4)
+assert(utf8.invalidoffset('\237\160\128\237\175\191\237\191\191', 5) == 5)
+assert(utf8.invalidoffset('\237\160\128\237\175\191\237\191\191', 6) == 6)
+assert(utf8.invalidoffset('\237\160\128\237\175\191\237\191\191', -1) == 9)
+
 print "OK"
 
 -- cc: run='lua -- $input'
