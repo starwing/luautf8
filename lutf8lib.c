@@ -1294,6 +1294,29 @@ static int Lutf8_isvalid(lua_State *L) {
   return 1;
 }
 
+static int Lutf8_invalidoffset(lua_State *L) {
+  const char *e, *s = check_utf8(L, 1, &e);
+  const char *orig_s = s;
+  int offset = luaL_optinteger(L, 2, 0);
+  if (offset > 1) {
+    offset--;
+    s += offset;
+    if (s >= e) {
+      lua_pushnil(L);
+      return 1;
+    }
+  } else if (offset < 0 && s - e < offset) {
+    s = e + offset;
+  }
+  const char *invalid = utf8_invalid_offset(s, e);
+  if (invalid == NULL) {
+    lua_pushnil(L);
+  } else {
+    lua_pushinteger(L, invalid - orig_s + 1);
+  }
+  return 1;
+}
+
 static int Lutf8_clean(lua_State *L) {
   const char *e, *s = check_utf8(L, 1, &e);
 
@@ -1379,6 +1402,7 @@ LUALIB_API int luaopen_utf8 (lua_State *L) {
     ENTRY(gsub),
     ENTRY(match),
     ENTRY(isvalid),
+    ENTRY(invalidoffset),
     ENTRY(clean),
 #undef  ENTRY
     { NULL, NULL }

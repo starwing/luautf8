@@ -174,6 +174,13 @@ note that *any* number of consecutive invalid bytes will be replaced by a single
 the 2nd return value is true if the original string was already valid (meaning no replacements were made).
 
 
+### utf8.invalidoffset(s[, init]) -> offset
+return the byte offset within s of the first invalid UTF-8 byte sequence.
+(1 is the first byte of the string.)
+if s is a valid UTF-8 string, return nil.
+the optional numeric argument init specifies where to start the search; its default value is 1 and can be negative.
+
+
 Improvement needed
 ------------------
 
