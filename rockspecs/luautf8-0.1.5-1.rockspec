@@ -1,5 +1,5 @@
 package = "luautf8"
-version = "0.1.4-1"
+version = "0.1.5-1"
 source = {
    url = "https://github.com/starwing/luautf8/archive/refs/tags/0.1.4.tar.gz",
    dir = "luautf8-0.1.4"
