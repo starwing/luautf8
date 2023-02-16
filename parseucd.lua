@@ -2,6 +2,7 @@
 -- you should have these files in UCD folder in current path:
 --   - UCD\CaseFolding.txt
 --   - UCD\DerivedCoreProperties.txt
+--   - UCD\DerivedNormalizationProps.txt
 --   - UCD\EastAsianWidth.txt
 --   - UCD\PropList.txt
 --   - UCD\UnicodeData.txt
@@ -17,9 +18,9 @@ local function parse_UnicodeData()
     -- 3. canonical combining class
     -- 4. bidi class
     -- 5. decomposition type/mapping
-    -- 6. numberic type/value
-    -- 7. numberic type/value
-    -- 8. numberic type/value
+    -- 6. numeric type/value
+    -- 7. numeric type/value
+    -- 8. numeric type/value
     -- 9. bidi mirrored [YN]
     -- 10. old unicode name
     -- 11. iso comment
@@ -33,12 +34,20 @@ local function parse_UnicodeData()
     local last_data
 
     for line in io.lines() do
-        local cp, name, gc, _, bidi_class, _, _,_,_, _, _,_, um, lm, tm = line:match(patt)
+        local cp, name, gc, canon_cls, bidi_class, decomposition, _,_,_, _, _,_, um, lm, tm = line:match(patt)
         assert(cp, line)
         cp = tonumber(cp, 16)
         lm = lm ~= "" and tonumber(lm, 16)
         um = um ~= "" and tonumber(um, 16)
         tm = tm ~= "" and tonumber(tm, 16)
+        local decomp1, decomp2 = decomposition:match "^(%x+) (%x+)$"
+        if decomp1 and decomp2 then
+            decomposition = { tonumber(decomp1, 16), tonumber(decomp2, 16) }
+        elseif decomposition:match("^%x+$") then
+            decomposition = { tonumber(decomposition, 16) }
+        else
+            decomposition = nil
+        end
         if last_data and last_data.name:match"First%>$" then
             assert(name:match"Last%>$", line)
             for i = last_data.cp, cp-1 do
@@ -48,6 +57,8 @@ local function parse_UnicodeData()
                     gc = gc,
                     bidi_class = bidi_class,
                     lm = lm, um = um, tm = tm,
+                    canon_cls = tonumber(canon_cls),
+                    decomposition = decomposition
                 }
             end
         end
@@ -57,6 +68,8 @@ local function parse_UnicodeData()
             gc = gc,
             bidi_class = bidi_class,
             lm = lm, um = um, tm = tm,
+            canon_cls = tonumber(canon_cls),
+            decomposition = decomposition
         }
         ucd[#ucd+1] = data
         last_data = data
@@ -157,6 +170,30 @@ local function parse_PropList(f)
     return ranges, lookup
 end
 
+local function parse_NormalizationProps(prop, ucd)
+    local codepoints = {}
+
+    for line in io.lines() do
+        local cps, property, tail = line:match "^([%x%.]+)%s*;%s*([%w%_]+)(.*)$"
+        if property == prop then
+            local value = tail:match "^%s*;%s*(%w+)"
+            local from = cps:match "^%x+"
+            local to = cps:match "%.%.(%x+)$"
+            if not to then to = from end
+
+            from = tonumber(from, 16)
+            to = tonumber(to, 16)
+
+            for cp = from, to, 1 do
+                codepoints[#codepoints+1] = cp
+            end
+        end
+    end
+
+    table.sort(codepoints)
+    return codepoints
+end
+
 local function get_ranges(list, func)
     local first, last, step, offset
     local ranges = {}
@@ -241,6 +278,18 @@ local function diff_ranges(base, sub, force)
 end
 --]]
 
+local function get_ucd(cp, ucd)
+    local data = ucd[cp+1]
+    if data.cp > cp then
+        local i = cp
+        while data.cp > cp do
+            data = ucd[i]
+            i = i - 1
+        end
+    end
+    return data
+end
+
 local function write_ranges(name, ranges)
     io.write("static struct range_table "..name.."_table[] = {\n")
     for _, r in ipairs(ranges) do
@@ -254,6 +303,63 @@ local function write_convtable(name, conv)
     for _, c in ipairs(conv) do
         io.write(("    { 0x%X, 0x%X, %d, %d },\n"):format(
             c.first, c.last, c.step or 1, c.offset))
+    end
+    io.write "};\n\n"
+end
+
+local function write_canon_cls_table(name, ucd)
+    io.write("static struct canon_cls_table "..name.."_table[] = {\n")
+    local start, prev = { canon_cls=0 }, { canon_cls=0 }
+    for _, data in ipairs(ucd) do
+        if data.canon_cls ~= prev.canon_cls then
+            if prev.canon_cls ~= 0 then
+                io.write(("    { 0x%X, 0x%X, %d },\n"):format(start.cp, prev.cp, prev.canon_cls))
+            end
+            start = data
+        end
+        prev = data
+    end
+    if prev.canon_cls ~= 0 then
+        io.write(("    { 0x%X, 0x%X, %d },\n"):format(start.cp, prev.cp, prev.canon_cls))
+    end
+    io.write "};\n\n"
+end
+
+local function write_combine_table(name, tbl)
+    local function hash(cp1, cp2)
+        return (cp1 * 213) + cp2
+    end
+    local dup = {}
+    for _, c in ipairs(tbl) do
+        local cp1, cp2 = table.unpack(c.decomposition)
+        if dup[hash(cp1, cp2)] then
+            local conflicting = dup[hash(cp1, cp2)]
+            local cp3, cp4 = table.unpack(conflicting.decomposition)
+            error("Hash collision: "..string.format("%x %x -> %x, %x %x -> %x", cp3, cp4, hash(cp3, cp4), cp1, cp2, hash(cp1, cp2)))
+        end
+        dup[hash(cp1, cp2)] = c
+    end
+    table.sort(tbl, function(a,b)
+        return hash(table.unpack(a.decomposition)) < hash(table.unpack(b.decomposition))
+    end)
+
+    io.write("static struct combine_table "..name.."_table[] = {\n")
+    for _, c in ipairs(tbl) do
+        local cp1, cp2 = table.unpack(c.decomposition)
+        io.write(("    { 0x%X, 0x%X, 0x%X, 0x%X },\n"):format(hash(cp1, cp2), cp1, cp2, c.cp))
+    end
+    io.write "};\n\n"
+end
+
+local function write_decompose_table(name, tbl, ucd)
+    table.sort(tbl, function(a,b)
+        return a.cp < b.cp
+    end)
+    io.write("static struct decompose_table "..name.."_table[] = {\n")
+    for _, c in ipairs(tbl) do
+        local cp1, cp2 = table.unpack(c.decomposition)
+        local data = get_ucd(cp2, ucd)
+        io.write(("    { 0x%X, 0x%X, 0x%X, %d },\n"):format(c.cp, cp1, cp2, data.canon_cls))
     end
     io.write "};\n\n"
 end
@@ -284,6 +390,40 @@ typedef struct conv_table {
     int step;
     int offset;
 } conv_table;
+
+typedef struct nfc_table {
+    utfint cp;
+    int reason;
+    unsigned int data1;
+    unsigned int data2;
+} nfc_table;
+
+#define REASON_MUST_CONVERT_1 1
+#define REASON_MUST_CONVERT_2 2
+#define REASON_STARTER_CAN_COMBINE 3
+#define REASON_COMBINING_MARK 4
+#define REASON_JAMO_VOWEL 5
+#define REASON_JAMO_TRAILING 6
+
+typedef struct canon_cls_table {
+    utfint first;
+    utfint last;
+    unsigned int canon_cls;
+} canon_cls_table;
+
+typedef struct combine_table {
+    utfint hash;
+    utfint cp1;
+    utfint cp2;
+    utfint dest;
+} combine_table;
+
+typedef struct decompose_table {
+    utfint cp;
+    utfint to1;
+    utfint to2;
+    unsigned int canon_cls2;
+} decompose_table;
 
 ]]
 
@@ -366,6 +506,59 @@ do
     local wide, ambi = parse_EastAsianWidth()
     write_ranges("doublewidth", get_ranges(wide))
     write_ranges("ambiwidth", get_ranges(ambi))
+end
+
+do
+    io.input  "UCD/UnicodeData.txt"
+    local ucd = parse_UnicodeData()
+
+    -- Write out table of all combining marks
+    write_canon_cls_table("nfc_combining", ucd)
+
+    -- Find all primary composites which we may need to consider during NFC normalization
+    io.input "UCD/DerivedNormalizationProps.txt"
+    local excluded = {}
+    for _, cp in ipairs(parse_NormalizationProps('Full_Composition_Exclusion')) do
+        excluded[cp] = true
+    end
+    local composite, can_combine = {}, {}
+    for _, data in ipairs(ucd) do
+        local decomp = data.decomposition
+        if not excluded[data.cp] and decomp and #decomp == 2 then
+            table.insert(composite, data)
+            can_combine[decomp[2]] = true
+        end
+    end
+    write_combine_table("nfc_composite", composite)
+    write_decompose_table("nfc_decompose", composite, ucd)
+
+    io.write("static struct nfc_table nfc_quickcheck_table[] = {\n")
+
+    io.input "UCD/DerivedNormalizationProps.txt"
+    for _, cp in ipairs(parse_NormalizationProps('NFC_QC', ucd)) do
+        local data = get_ucd(cp, ucd)
+        local decomp = data.decomposition
+        if decomp then
+            if #decomp == 1 then
+                local decomp_data = get_ucd(decomp[1], ucd)
+                io.write(("    { 0x%X, REASON_MUST_CONVERT_1, 0x%X, %d },\n"):format(data.cp, decomp[1], decomp_data.canon_cls))
+            else
+                io.write(("    { 0x%X, REASON_MUST_CONVERT_2, 0x%X, 0x%X },\n"):format(data.cp, decomp[1], decomp[2]))
+            end
+        elseif data.canon_cls ~= 0 then
+            io.write(("    { 0x%X, REASON_COMBINING_MARK, 0, 0 },\n"):format(data.cp))
+        elseif can_combine[data.cp] then
+            io.write(("    { 0x%X, REASON_STARTER_CAN_COMBINE, 0, 0 },\n"):format(data.cp))
+        elseif data.cp >= 0x1161 and data.cp <= 0x1175 then
+            io.write(("    { 0x%X, REASON_JAMO_VOWEL, 0, 0 },\n"):format(data.cp))
+        elseif data.cp >= 0x11A8 and data.cp <= 0x11C2 then
+            io.write(("    { 0x%X, REASON_JAMO_TRAILING, 0, 0 },\n"):format(data.cp))
+        else
+            error("Don't know why we need to check for codepoint "..string.format("0x%x", data.cp).." when doing NFC normalization")
+        end
+    end
+
+    io.write "};\n\n"
 end
 
 io.write "#endif /* unidata_h */\n"
