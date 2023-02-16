@@ -354,6 +354,47 @@ assert(utf8.invalidoffset('\237\160\128\237\175\191\237\191\191', 5) == 5)
 assert(utf8.invalidoffset('\237\160\128\237\175\191\237\191\191', 6) == 6)
 assert(utf8.invalidoffset('\237\160\128\237\175\191\237\191\191', -1) == 9)
 
+
+local function parse_codepoints(s)
+   local list = {}
+   for hex in s:gmatch("%w+") do
+      list[#list+1] = tonumber(hex, 16)
+   end
+   return utf8.char(unpack(list))
+end
+
+-- This is an official set of test cases for Unicode normalization
+-- Provided by the Unicode Consortium
+local normalization_test_cases = {}
+local f = io.open('NormalizationTest.txt', 'r')
+for line in f:lines() do
+   if not line:match("^#") and not line:match("^@") then
+      local src, nfc, nfd = line:match "([%w%s]+);([%w%s]+);([%w%s]+)"
+      table.insert(normalization_test_cases, { src = parse_codepoints(src), nfc = parse_codepoints(nfc), nfd = parse_codepoints(nfd) })
+   end
+end
+
+
+-- test isnfc
+for _,case in ipairs(normalization_test_cases) do
+   assert(utf8.isnfc(case.nfc))
+   if case.src ~= case.nfc then
+      assert(not utf8.isnfc(case.src))
+   end
+   if case.nfd ~= case.nfc and case.nfd ~= case.src then
+      assert(not utf8.isnfc(case.nfd))
+   end
+end
+
+
+-- test normalize_nfc
+for _,case in ipairs(normalization_test_cases) do
+   assert(utf8.normalize_nfc(case.src) == case.nfc)
+   assert(utf8.normalize_nfc(case.nfc) == case.nfc)
+   assert(utf8.normalize_nfc(case.nfd) == case.nfc)
+end
+
+
 print "OK"
 
 -- cc: run='lua -- $input'
