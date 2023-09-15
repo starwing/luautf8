@@ -86,11 +86,11 @@ local function parse_EastAsianWidth()
         line = line:gsub("%s*%#.*$", "")
         if line ~= "" then
             local first, last, mark
-            first, mark = line:match "^(%x+)%;(%w+)$"
+            first, mark = line:match "^(%x+)%s*%;%s*(%w+)$"
             if first then
                 last = first
             else
-                first, last, mark = line:match "^(%x+)%.%.(%x+)%;(%w+)$"
+                first, last, mark = line:match "^(%x+)%.%.(%x+)%s*%;%s*(%w+)$"
                 assert(first, line)
             end
 
@@ -144,11 +144,11 @@ local function parse_PropList(f)
         line = line:gsub("%s*%#.*$", "")
         if line ~= "" then
             local first, last, mark
-            first, mark = line:match "^(%x+)%s*%;%s*([%w_]+)%s*$"
+            first, mark = line:match "^(%x+)%s*%;%s*([%w%s_;]+)%s*$"
             if first then
                 last = first
             else
-                first, last, mark = line:match "^(%x+)%.%.(%x+)%s*%;%s*([%w_]+)%s*$"
+                first, last, mark = line:match "^(%x+)%.%.(%x+)%s*%;%s*([%w%s_;]+)%s*$"
                 assert(first, line)
             end
 
