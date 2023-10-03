@@ -181,14 +181,14 @@ if s is a valid UTF-8 string, return nil.
 the optional numeric argument init specifies where to start the search; its default value is 1 and can be negative.
 
 
-## utf8.isnfc(s) -> boolean
+### utf8.isnfc(s) -> boolean
 check whether s is in Normal Form C or not.
 "Normal Form C" means that whenever possible, combining marks are combined with a preceding codepoint. For example, instead of U+0041 (LATIN CAPITAL LETTER A) U+00B4 (ACUTE ACCENT), an NFC string will use U+00C1 (LATIN CAPITAL LETTER A WITH ACUTE). Also, some deprecated codepoints are converted to the recommended replacements.
 since the same sequence of characters can be represented in more than one way in Unicode, it is better to ensure strings are in Normal Form before comparing them.
 an error may be raised if s is not a valid UTF-8 string.
 
 
-## utf8.normalize_nfc(s) -> normal_string, was_nfc
+### utf8.normalize_nfc(s) -> normal_string, was_nfc
 convert s to Normal Form C.
 the 2nd return value is true if the original string was already in NFC (meaning no modifications were made).
 an error will be raised if s is not a valid UTF-8 string.
