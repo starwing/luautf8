@@ -4,6 +4,9 @@
 --   - UCD\DerivedCoreProperties.txt
 --   - UCD\DerivedNormalizationProps.txt
 --   - UCD\EastAsianWidth.txt
+--   - UCD\emoji\emoji-data.txt
+--   - UCD\HangulSyllableType.txt
+--   - UCD\IndicSyllabicCategory.txt
 --   - UCD\PropList.txt
 --   - UCD\UnicodeData.txt
 --
@@ -168,6 +171,38 @@ local function parse_PropList(f)
 
     table.sort(ranges)
     return ranges, lookup
+end
+
+local function parse_HangulSyllableType()
+    local ranges = {}
+    local lookup = {}
+
+    for line in io.lines() do
+        line = line:gsub("%s*%#.*$", "")
+        if line ~= "" then
+            local first, last, mark
+            first, mark = line:match "^(%x+)%s*%;%s*([%w%s_;]+)%s*$"
+            if first then
+                last = first
+            else
+                first, last, mark = line:match "^(%x+)%.%.(%x+)%s*%;%s*([%w%s_;]+)%s*$"
+                assert(first, line)
+            end
+
+            first = tonumber(first, 16)
+            last = tonumber(last, 16)
+
+            for i = first, last do
+                if not lookup[i] then
+                    lookup[i] = true
+                    ranges[#ranges+1] = { cp=i, offset='HANGUL_'..mark }
+                end
+            end
+        end
+    end
+
+    table.sort(ranges, function(a, b) return a.cp < b.cp end)
+    return ranges
 end
 
 local function parse_NormalizationProps(prop, ucd)
@@ -364,6 +399,23 @@ local function write_decompose_table(name, tbl, ucd)
     io.write "};\n\n"
 end
 
+local function write_type_table(name, conv)
+    io.write("static struct type_table "..name.."_table[] = {\n")
+    for _, c in ipairs(conv) do
+        if c.step and c.step ~= 1 then
+            local i = c.first
+            while i <= c.last do
+                io.write(("    { 0x%X, 0x%X, %s },\n"):format(i, i, c.offset))
+                i = i + c.step
+            end
+        else
+            io.write(("    { 0x%X, 0x%X, %s },\n"):format(c.first, c.last, c.offset))
+        end
+    end
+    io.write "};\n\n"
+end
+
+
 io.output "unidata.h"
 
 io.write [[
@@ -425,6 +477,22 @@ typedef struct decompose_table {
     unsigned int canon_cls2;
 } decompose_table;
 
+#define HANGUL_L 1
+#define HANGUL_V 2
+#define HANGUL_T 3
+#define HANGUL_LV 4
+#define HANGUL_LVT 5
+
+typedef struct type_table {
+    utfint first;
+    utfint last;
+    int type;
+} type_table;
+
+#define INDIC_CONSONANT 1
+#define INDIC_LINKER 2
+#define INDIC_EXTEND 3
+
 ]]
 
 do
@@ -456,6 +524,36 @@ do
 
     io.input "UCD/DerivedCoreProperties.txt"
     ranges("compose", "Grapheme_Extend")
+
+    io.input "UCD/emoji/emoji-data.txt"
+    ranges("pictographic", "Extended_Pictographic")
+end
+
+do
+    io.input "UCD/PropList.txt"
+    local prepend = parse_PropList("Prepended_Concatenation_Mark")
+    io.input "UCD/IndicSyllabicCategory.txt"
+    local indic = parse_PropList({ Consonant_Preceding_Repha=true, Consonant_Prefixed=true })
+    for _,cp in ipairs(indic) do
+        table.insert(prepend, cp)
+    end
+    table.sort(prepend)
+    write_ranges("prepend", get_ranges(prepend))
+end
+
+do
+    io.input "UCD/DerivedCoreProperties.txt"
+    local linker = parse_PropList("InCB; Linker")
+    io.input "UCD/DerivedCoreProperties.txt"
+    local consonant = parse_PropList("InCB; Consonant")
+    io.input "UCD/DerivedCoreProperties.txt"
+    local extend = parse_PropList("InCB; Extend")
+    local indic_type = {}
+    for _,cp in ipairs(consonant) do table.insert(indic_type, { cp=cp, offset='INDIC_CONSONANT' }) end
+    for _,cp in ipairs(linker) do table.insert(indic_type, { cp=cp, offset='INDIC_LINKER' }) end
+    for _,cp in ipairs(extend) do table.insert(indic_type, { cp=cp, offset='INDIC_EXTEND' }) end
+    table.sort(indic_type, function(a, b) return a.cp < b.cp end)
+    write_type_table("indic", get_ranges(indic_type))
 end
 
 do
@@ -483,10 +581,12 @@ do
     local digit = "Nd"
     local alnum_extend = "Nd Nl No"
     local punct = "Sk Sc Sm Pc Pd Ps Pe Pi Pf Po"
+    local spacing_mark = "Mc"
     write_ranges("cntrl", get_ranges(ucd, set(cntrl)))
     write_ranges("digit", get_ranges(ucd, set(digit)))
     write_ranges("alnum_extend", get_ranges(ucd, set(alnum_extend)))
     write_ranges("punct", get_ranges(ucd, set(punct)))
+    write_ranges("spacing_mark", get_ranges(ucd, set(spacing_mark)))
     write_convtable("tolower", get_ranges(ucd, mapping "lm"))
     write_convtable("toupper", get_ranges(ucd, mapping "um"))
     write_convtable("totitle", get_ranges(ucd, mapping "tm"))
@@ -506,6 +606,11 @@ do
     local wide, ambi = parse_EastAsianWidth()
     write_ranges("doublewidth", get_ranges(wide))
     write_ranges("ambiwidth", get_ranges(ambi))
+end
+
+do
+    io.input "UCD/HangulSyllableType.txt"
+    write_type_table("hangul", (get_ranges(parse_HangulSyllableType())))
 end
 
 do

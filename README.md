@@ -194,6 +194,18 @@ the 2nd return value is true if the original string was already in NFC (meaning 
 an error will be raised if s is not a valid UTF-8 string.
 
 
+### utf8.grapheme_indices(s[, start[, stop]]) -> iterator
+return an iterator which yields the starting and ending byte index of each successive grapheme cluster in s. This range of bytes is inclusive of the endpoints, so the yielded values can be passed to `string.sub` to extract the grapheme cluster.
+if you provide `start` and `stop` byte indices, then the iterator will only cover the requested byte range. `start` and `stop` should fall on character boundaries, since an error will be raised if the requested byte range is not a valid UTF-8 string.
+```lua
+local i = 1
+for from,to in utf8.grapheme_indices(s) do
+  print("grapheme cluster "..i.." is from byte "..from.." to byte "..to)
+  i = i + 1
+end
+```
+
+
 Improvement needed
 ------------------
 
