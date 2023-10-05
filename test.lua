@@ -400,6 +400,62 @@ for _,case in ipairs(normalization_test_cases) do
 end
 
 
+-- Official set of test cases for grapheme cluster segmentation, provided by Unicode Consortium
+local grapheme_test_cases = {}
+f = io.open('GraphemeBreakTest.txt', 'r')
+for line in f:lines() do
+   if not line:match("^#") and not line:match("^@") then
+      line = line:gsub("#.*", "")
+      line = line:gsub("^%s*÷%s*", "")
+      line = line:gsub("%s*÷%s*$", "")
+      local clusters = { "" }
+      for str in line:gmatch("%S*") do
+         if str == '×' then
+            -- do nothing
+         elseif str == '÷' then
+            table.insert(clusters, "") -- start a new cluster
+         else
+            clusters[#clusters] = clusters[#clusters]..utf8.char(tonumber(str, 16))
+         end
+      end
+      table.insert(grapheme_test_cases, { str=table.concat(clusters), clusters=clusters })
+   end
+end
+
+
+-- test grapheme_indices
+for _,case in ipairs(grapheme_test_cases) do
+   local actual_clusters = {}
+   for start,stop in utf8.grapheme_indices(case.str) do
+      table.insert(actual_clusters, case.str:sub(start, stop))
+   end
+   assert(#actual_clusters == #case.clusters)
+   for i,cluster in ipairs(case.clusters) do
+      assert(actual_clusters[i] == cluster)
+   end
+end
+
+-- try iterating over grapheme clusters in a substring
+local clusters = {}
+for a,b in utf8.grapheme_indices('ひらがな', 4, 9) do
+   table.insert(clusters, a)
+   table.insert(clusters, b)
+end
+for idx,value in ipairs({ 4, 6, 7, 9 }) do
+   assert(clusters[idx] == value)
+end
+
+-- try private use codepoint followed by a combining character
+clusters = {}
+for a,b in utf8.grapheme_indices('\239\128\128\204\154') do
+   table.insert(clusters, a)
+   table.insert(clusters, b)
+end
+for idx,value in ipairs({ 1, 5 }) do
+   assert(clusters[idx] == value)
+end
+
+
 print "OK"
 
 -- cc: run='lua -- $input'
