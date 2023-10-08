@@ -167,6 +167,11 @@ do
    assert_fail(function() utf8.reverse(E"%xD800") end, "invalid UTF%-8 code")
 end
 
+
+-- test match
+assert(utf8.match('%c', '') == nil) -- %c does not match U+F000
+
+
 -- test codepoint
 for i = 1, 1000 do
    assert(utf8.codepoint(E("%"..i)) == i)

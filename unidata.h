@@ -2315,8 +2315,6 @@ static struct range_table cntrl_table[] = {
     { 0x202A, 0x202E, 1 },
     { 0x2060, 0x2064, 1 },
     { 0x2066, 0x206F, 1 },
-    { 0xE000, 0xE000, 0 },
-    { 0xE001, 0xF8FF, 1 },
     { 0xFEFF, 0xFFF9, 250 },
     { 0xFFFA, 0xFFFB, 1 },
     { 0x110BD, 0x110CD, 16 },
@@ -2325,10 +2323,6 @@ static struct range_table cntrl_table[] = {
     { 0x1D173, 0x1D17A, 1 },
     { 0xE0001, 0xE0020, 31 },
     { 0xE0021, 0xE007F, 1 },
-    { 0xF0000, 0xF0000, 0 },
-    { 0xF0001, 0xFFFFD, 1 },
-    { 0x100000, 0x100000, 0 },
-    { 0x100001, 0x10FFFD, 1 },
 };
 
 static struct range_table digit_table[] = {

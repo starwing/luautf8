@@ -479,7 +479,7 @@ do
             end
         end
     end
-    local cntrl = "Cc Cf Co"
+    local cntrl = "Cc Cf"
     local digit = "Nd"
     local alnum_extend = "Nd Nl No"
     local punct = "Sk Sc Sm Pc Pd Ps Pe Pi Pf Po"
