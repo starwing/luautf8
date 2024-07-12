@@ -399,6 +399,9 @@ for _,case in ipairs(normalization_test_cases) do
    assert(utf8.normalize_nfc(case.nfd) == case.nfc)
 end
 
+-- Regression tests:
+-- Long series of combining marks; these need to be sorted in canonical order
+assert(utf8.normalize_nfc("\215\129\215\133\215\133\215\129\215\129\215\129\215\129\215\129\215\129") == "\215\129\215\129\215\129\215\129\215\129\215\129\215\129\215\133\215\133")
 
 -- Official set of test cases for grapheme cluster segmentation, provided by Unicode Consortium
 local grapheme_test_cases = {}
