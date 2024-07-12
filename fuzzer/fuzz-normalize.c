@@ -112,7 +112,7 @@ static int32_t icu_from_uchar(UConverter *icu_converter, char **result, const UC
 int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size)
 {
 	/*
-	printf("(%zu): ", Size);
+	printf("Input (%zu): ", Size);
 	for (unsigned int i = 0; i < Size; i++)
 		printf("%02x ", Data[i]);
 	printf("\n");
@@ -161,6 +161,11 @@ int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size)
 			UBool was_actually_nfc = unorm2_isNormalized(norm, ubuff, usize, &errcode);
 			assert(!U_FAILURE(errcode));
 
+			/*
+			printf("lua-utf8, is the input NFC? %s\n", was_nfc ? "yes" : "no");
+			printf("ICU, is the input NFC?      %s\n", was_actually_nfc ? "yes" : "no");
+			*/
+
 			assert(was_nfc == was_actually_nfc);
 		}
 	}
@@ -197,6 +202,17 @@ int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size)
 			/* Convert NFC codepoints to UTF-8 bytes */
 			char *bytes = NULL;
 			uint32_t byte_len = icu_from_uchar(icu_converter, &bytes, dest, dest_len);
+
+			/*
+			printf("lua-utf8 (%zu): ", str_len);
+			for (unsigned int i = 0; i < str_len; i++)
+				printf("%02x ", (uint8_t)str[i]);
+			printf("\n");
+			printf("ICU      (%u): ", byte_len);
+			for (unsigned int i = 0; i < byte_len; i++)
+				printf("%02x ", (uint8_t)bytes[i]);
+			printf("\n");
+			*/
 
 			assert(byte_len == str_len);
 			assert(strncmp(str, bytes, str_len) == 0);
