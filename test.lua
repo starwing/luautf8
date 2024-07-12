@@ -391,6 +391,10 @@ for _,case in ipairs(normalization_test_cases) do
    end
 end
 
+-- Regression tests:
+-- Although U+1100-115F are all leading Jamo (Korean characters), for some reason,
+-- the normalization algorithm only combines U+1100-1112 with a following vowel Jamo
+assert(utf8.isnfc("\225\133\133\225\133\163"))
 
 -- test normalize_nfc
 for _,case in ipairs(normalization_test_cases) do

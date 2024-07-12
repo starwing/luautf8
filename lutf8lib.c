@@ -336,7 +336,7 @@ static int nfc_check (utfint ch, nfc_table *entry, utfint starter, unsigned int 
       return 0;
     }
   } else if (reason == REASON_JAMO_VOWEL) {
-    if (!prev_canon_cls && starter >= 0x1100 && starter <= 0x115F) {
+    if (!prev_canon_cls && starter >= 0x1100 && starter <= 0x1112) {
       /* Preceding codepoint was a leading jamo; they should have been combined */
       return 0;
     }
@@ -559,7 +559,7 @@ process_combining_marks:
         if (entry) {
           if (entry->reason == REASON_STARTER_CAN_COMBINE && nfc_combine(starter, ch, &ch)) {
             fixedup = 1;
-          } else if (entry->reason == REASON_JAMO_VOWEL && starter >= 0x1100 && starter <= 0x115F) {
+          } else if (entry->reason == REASON_JAMO_VOWEL && starter >= 0x1100 && starter <= 0x1112) {
             ch = 0xAC00 + ((starter - 0x1100) * 588) + ((ch - 0x1161) * 28);
             fixedup = 1;
           } else if (entry->reason == REASON_JAMO_TRAILING) {
