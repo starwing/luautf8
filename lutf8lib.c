@@ -598,7 +598,12 @@ process_combining_marks:
       /* Accumulate combining marks in vector */
       if (vec_size == vec_max) {
         vec_max *= 2;
-        vector = realloc((vector == onstack) ? NULL : vector, vec_max * sizeof(uint32_t));
+        if (vector == onstack) {
+          vector = malloc(vec_max * sizeof(uint32_t));
+          memcpy(vector, onstack, sizeof(onstack));
+        } else {
+          vector = realloc(vector, vec_max * sizeof(uint32_t));
+        }
       }
       vector[vec_size++] = (ch << 8) | (canon_cls & 0xFF);
     }
