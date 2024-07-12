@@ -502,7 +502,12 @@ process_combining_marks:
               /* This combining mark must be converted to two others */
               if (vec_size == vec_max) {
                 vec_max *= 2;
-                vector = realloc((vector == onstack) ? NULL : vector, vec_max * sizeof(uint32_t));
+                if (vector == onstack) {
+                  vector = malloc(vec_max * sizeof(uint32_t));
+                  memcpy(vector, onstack, sizeof(onstack));
+                } else {
+                  vector = realloc(vector, vec_max * sizeof(uint32_t));
+                }
               }
               memmove(&vector[i+2], &vector[i+1], sizeof(uint32_t) * (vec_size - i - 1));
               vector[i] = (mark_entry->data1 << 8) | lookup_canon_cls(mark_entry->data1);
