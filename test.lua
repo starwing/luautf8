@@ -412,7 +412,7 @@ for line in f:lines() do
       line = line:gsub("^%s*÷%s*", "")
       line = line:gsub("%s*÷%s*$", "")
       local clusters = { "" }
-      for str in line:gmatch("%S*") do
+      for str in line:gmatch("%S+") do
          if str == '×' then
             -- do nothing
          elseif str == '÷' then
