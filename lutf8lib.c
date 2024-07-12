@@ -456,6 +456,8 @@ static void string_to_nfc (lua_State *L, luaL_Buffer *buff, const char *s, const
   while (s < e) {
     const char *new_s = utf8_decode(s, &ch, 1);
     if (new_s == NULL) {
+      if (vector != onstack)
+        free(vector);
       lua_pushstring(L, "string is not valid UTF-8");
       lua_error(L);
     }
