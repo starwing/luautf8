@@ -1,5 +1,8 @@
 ALL: lua-utf8.so fuzz-valid fuzz-clean fuzz-invalid fuzz-normalize fuzz-grapheme
 
+clean:
+	rm lua-utf8.so fuzz-valid fuzz-clean fuzz-invalid fuzz-normalize fuzz-grapheme
+
 lua-utf8.so: ../lutf8lib.c
 	clang -g -fsanitize=fuzzer-no-link,address -fPIC $$(pkg-config --cflags lua5.1) ../lutf8lib.c -shared -o lua-utf8.so
 
