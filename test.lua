@@ -406,6 +406,11 @@ end
 -- Regression tests:
 -- Long series of combining marks; these need to be sorted in canonical order
 assert(utf8.normalize_nfc("\215\129\215\133\215\133\215\129\215\129\215\129\215\129\215\129\215\129") == "\215\129\215\129\215\129\215\129\215\129\215\129\215\129\215\133\215\133")
+-- After converting combining marks to standard codepoints, it is possible their canonicalization class may change
+-- If so, make sure they are still put in the correct order
+assert(utf8.normalize_nfc("\200\135\204\163\204\169") == "\225\186\185\204\169\204\145")
+-- This test case caused an out-of-bounds read where my code tried to sort an empty array
+assert(utf8.normalize_nfc("\225\190\129\204\129") == "\225\190\133")
 
 -- Official set of test cases for grapheme cluster segmentation, provided by Unicode Consortium
 local grapheme_test_cases = {}
