@@ -415,6 +415,20 @@ static void stable_sort_combining_marks (uint32_t *vector, uint32_t *scratch, si
 
 static void add_utf8char (luaL_Buffer *b, utfint ch);
 
+static inline void grow_vector_if_needed (uint32_t **vector, uint32_t *onstack, size_t *size, size_t needed)
+{
+  size_t current_size = *size;
+  if (needed >= current_size) {
+    size_t new_size = current_size * 2; /* `needed` is never bigger than `current_size * 2` */
+    uint32_t *new_vector = malloc(new_size * sizeof(uint32_t));
+    memcpy(new_vector, *vector, current_size * sizeof(uint32_t));
+    *size = new_size;
+    if (*vector != onstack)
+      free(*vector);
+    *vector = new_vector;
+  }
+}
+
 static void string_to_nfc (lua_State *L, luaL_Buffer *buff, const char *s, const char *e)
 {
   /* Converting a string to Normal Form C involves:
@@ -467,6 +481,25 @@ static void string_to_nfc (lua_State *L, luaL_Buffer *buff, const char *s, const
       /* This is a starter codepoint */
       nfc_table *entry = nfc_quickcheck(ch);
 
+      /* But in rare cases, a deprecated 'starter' codepoint may convert
+       * to combining marks instead!
+       * Why, oh why, did the Unicode Consortium do this?? */
+      if (entry && entry->reason == REASON_MUST_CONVERT_2) {
+        utfint conv1 = entry->data1;
+        unsigned int canon_cls1 = lookup_canon_cls(conv1);
+        if (canon_cls1) {
+          utfint conv2 = entry->data2;
+          unsigned int canon_cls2 = lookup_canon_cls(conv2);
+          grow_vector_if_needed(&vector, onstack, &vec_max, vec_size + 2);
+          vector[vec_size++] = (conv1 << 8) | (canon_cls1 & 0xFF);
+          vector[vec_size++] = (conv2 << 8) | (canon_cls2 & 0xFF);
+          s = new_s;
+          prev_canon_cls = canon_cls2;
+          fixedup = 1;
+          continue;
+        }
+      }
+
       /* Handle preceding starter and optional sequence of combining marks which may have followed it */
       if (prev_canon_cls) {
         /* Before this starter, there was a sequence of combining marks.
@@ -500,15 +533,7 @@ process_combining_marks:
               continue;
             } else if (mark_entry->reason == REASON_MUST_CONVERT_2) {
               /* This combining mark must be converted to two others */
-              if (vec_size == vec_max) {
-                vec_max *= 2;
-                if (vector == onstack) {
-                  vector = malloc(vec_max * sizeof(uint32_t));
-                  memcpy(vector, onstack, sizeof(onstack));
-                } else {
-                  vector = realloc(vector, vec_max * sizeof(uint32_t));
-                }
-              }
+              grow_vector_if_needed(&vector, onstack, &vec_max, vec_size + 1);
               memmove(&vector[i+2], &vector[i+1], sizeof(uint32_t) * (vec_size - i - 1));
               vector[i] = (mark_entry->data1 << 8) | lookup_canon_cls(mark_entry->data1);
               vector[i+1] = (mark_entry->data2 << 8) | lookup_canon_cls(mark_entry->data2);
@@ -642,15 +667,7 @@ process_combining_marks:
       }
     } else {
       /* Accumulate combining marks in vector */
-      if (vec_size == vec_max) {
-        vec_max *= 2;
-        if (vector == onstack) {
-          vector = malloc(vec_max * sizeof(uint32_t));
-          memcpy(vector, onstack, sizeof(onstack));
-        } else {
-          vector = realloc(vector, vec_max * sizeof(uint32_t));
-        }
-      }
+      grow_vector_if_needed(&vector, onstack, &vec_max, vec_size + 1);
       vector[vec_size++] = (ch << 8) | (canon_cls & 0xFF);
     }
 
