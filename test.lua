@@ -411,6 +411,11 @@ assert(utf8.normalize_nfc("\215\129\215\133\215\133\215\129\215\129\215\129\215\
 assert(utf8.normalize_nfc("\200\135\204\163\204\169") == "\225\186\185\204\169\204\145")
 -- This test case caused an out-of-bounds read where my code tried to sort an empty array
 assert(utf8.normalize_nfc("\225\190\129\204\129") == "\225\190\133")
+-- After converting one codepoint to two, as required by the NFC normalization tables,
+-- if the 2nd resulting codepoint is a combining mark, we have to be ready to re-order
+-- it with any following combining marks
+assert(utf8.normalize_nfc("\224\165\152\204\184") == "\224\164\149\204\184\224\164\188")
+
 
 -- Official set of test cases for grapheme cluster segmentation, provided by Unicode Consortium
 local grapheme_test_cases = {}

@@ -607,10 +607,23 @@ process_combining_marks:
           if (conv_entry && conv_entry->reason == REASON_MUST_CONVERT_2) {
             add_utf8char(buff, conv_entry->data1);
             add_utf8char(buff, conv_entry->data2);
+            starter = entry->data2;
           } else {
-            add_utf8char(buff, conv1);
+            /* It's also possible that 'ch' might convert to two other codepoints,
+             * where the 2nd one is a combining mark */
+            utfint conv2 = entry->data2;
+            unsigned int canon_cls2 = lookup_canon_cls(conv2);
+            if (conv2) {
+              starter = conv1;
+              vector[0] = (conv2 << 8) | canon_cls2;
+              vec_size = 1;
+              canon_cls = canon_cls2;
+            } else {
+              add_utf8char(buff, conv1);
+              starter = conv2;
+            }
           }
-          starter = entry->data2;
+
           fixedup = 1;
         }
       }
