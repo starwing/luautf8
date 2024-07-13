@@ -418,6 +418,9 @@ assert(utf8.normalize_nfc("\224\165\152\204\184") == "\224\164\149\204\184\224\1
 -- It can also happen that a codepoint converts to a starter followed by TWO combining marks,
 -- and we must be able to reorder BOTH of those combining marks with a following combining mark
 assert(utf8.normalize_nfc("\239\172\172\204\184") == "\215\169\204\184\214\188\215\129")
+-- It can even happen that a deprecated 'starter' codepoint (canonicalization class = 0)
+-- can convert to 'combining mark' codepoints (canonicalization class != 0)
+assert(utf8.normalize_nfc("\223\179\224\189\179") == "\224\189\177\224\189\178\223\179")
 
 
 -- Official set of test cases for grapheme cluster segmentation, provided by Unicode Consortium
