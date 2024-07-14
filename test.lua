@@ -399,6 +399,11 @@ assert(utf8.isnfc("\225\133\133\225\133\163"))
 -- combining with the preceding starter codepoint (by another combining mark with
 -- the same canonicalization class)
 assert(utf8.isnfc("\196\148\204\162\204\167"))
+-- It is possible that a codepoint which is composed from a starter and combining mark
+-- might be decomposed, then the resulting starter might be decomposed AGAIN, then
+-- those two resulting combining marks might be reordered with a following combining
+-- mark
+assert(not utf8.isnfc("\199\154\204\164"))
 
 -- test normalize_nfc
 for _,case in ipairs(normalization_test_cases) do
@@ -430,6 +435,11 @@ assert(utf8.normalize_nfc("\223\179\224\189\179") == "\224\189\177\224\189\178\2
 -- the same canonicalization class)
 assert(utf8.normalize_nfc("\196\148\204\162\204\167") == "\196\148\204\162\204\167")
 assert(utf8.normalize_nfc("\200\148\204\160\204\148\204\164") == "\200\148\204\160\204\164\204\148")
+-- It is possible that a codepoint which is composed from a starter and combining mark
+-- might be decomposed, then the resulting starter might be decomposed AGAIN, then
+-- those two resulting combining marks might be reordered with a following combining
+-- mark
+assert(utf8.normalize_nfc("\199\154\204\164") == "\225\185\179\204\136\204\140")
 
 
 -- Official set of test cases for grapheme cluster segmentation, provided by Unicode Consortium
