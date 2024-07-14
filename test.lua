@@ -395,6 +395,10 @@ end
 -- Although U+1100-115F are all leading Jamo (Korean characters), for some reason,
 -- the normalization algorithm only combines U+1100-1112 with a following vowel Jamo
 assert(utf8.isnfc("\225\133\133\225\133\163"))
+-- In certain cases, we did not properly check if a combining mark was blocked from
+-- combining with the preceding starter codepoint (by another combining mark with
+-- the same canonicalization class)
+assert(utf8.isnfc("\196\148\204\162\204\167"))
 
 -- test normalize_nfc
 for _,case in ipairs(normalization_test_cases) do
@@ -421,6 +425,11 @@ assert(utf8.normalize_nfc("\239\172\172\204\184") == "\215\169\204\184\214\188\2
 -- It can even happen that a deprecated 'starter' codepoint (canonicalization class = 0)
 -- can convert to 'combining mark' codepoints (canonicalization class != 0)
 assert(utf8.normalize_nfc("\223\179\224\189\179") == "\224\189\177\224\189\178\223\179")
+-- In certain cases, we did not properly check if a combining mark was blocked from
+-- combining with the preceding starter codepoint (by another combining mark with
+-- the same canonicalization class)
+assert(utf8.normalize_nfc("\196\148\204\162\204\167") == "\196\148\204\162\204\167")
+assert(utf8.normalize_nfc("\200\148\204\160\204\148\204\164") == "\200\148\204\160\204\164\204\148")
 
 
 -- Official set of test cases for grapheme cluster segmentation, provided by Unicode Consortium
