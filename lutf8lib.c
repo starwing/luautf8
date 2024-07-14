@@ -335,8 +335,15 @@ static int nfc_check (utfint ch, nfc_table *entry, utfint starter, unsigned int 
     /* Could it be that preceding 'starter' codepoint is already combined, but with a
      * combining mark which is out of order with this one? */
     decompose_table *decomp = nfc_decompose(starter);
-    if (decomp && decomp->canon_cls2 > canon_cls && nfc_combine(decomp->to1, ch, NULL)) {
-      return 0;
+    if (decomp) {
+      if (decomp->canon_cls2 > canon_cls && nfc_combine(decomp->to1, ch, NULL)) {
+        return 0;
+      } else {
+        decompose_table *decomp2 = nfc_decompose(decomp->to1);
+        if (decomp2 && decomp2->canon_cls2 > canon_cls && nfc_combine(decomp2->to1, ch, NULL)) {
+          return 0;
+        }
+      }
     }
   } else if (reason == REASON_JAMO_VOWEL) {
     if (!prev_canon_cls && starter >= 0x1100 && starter <= 0x1112) {
@@ -544,7 +551,8 @@ process_combining_marks:
               fixedup = 1;
               continue;
             } else if (mark_entry->reason == REASON_COMBINING_MARK) {
-              if (i == 0 || (vector[i] & 0xFF) > (vector[i-1] & 0xFF)) {
+              unsigned int mark_canon_cls = vector[i] & 0xFF;
+              if (i == 0 || mark_canon_cls > (vector[i-1] & 0xFF)) {
                 if (nfc_combine(starter, combine_mark, &starter)) {
                   /* This combining mark must be combined with preceding starter */
                   vec_size--;
@@ -554,19 +562,30 @@ process_combining_marks:
                 }
 
                 decompose_table *decomp = nfc_decompose(starter);
-                if (decomp && decomp->canon_cls2 > (vector[i] & 0xFF) && nfc_combine(decomp->to1, combine_mark, &starter)) {
-                  /* The preceding starter already included an accent, but when represented as a combining
-                   * mark, that accent has a HIGHER canonicalization class than this one
-                   * Further, this one is able to combine with the same base character
-                   * In other words, the base character was wrongly combined with a "lower-priority"
-                   * combining mark; fix that up */
-                  unsigned int class2 = lookup_canon_cls(decomp->to2);
-                  if (class2 != (vector[i] & 0xFF)) {
-                    sort_needed = 1;
+                if (decomp) {
+                  if (decomp->canon_cls2 > mark_canon_cls && nfc_combine(decomp->to1, combine_mark, &starter)) {
+                    /* The preceding starter already included an accent, but when represented as a combining
+                     * mark, that accent has a HIGHER canonicalization class than this one
+                     * Further, this one is able to combine with the same base character
+                     * In other words, the base character was wrongly combined with a "lower-priority"
+                     * combining mark; fix that up */
+                    unsigned int class2 = lookup_canon_cls(decomp->to2);
+                    if (class2 != mark_canon_cls) {
+                      sort_needed = 1;
+                    }
+                    vector[i] = (decomp->to2 << 8) | class2;
+                    fixedup = 1;
+                    continue;
+                  } else {
+                    decompose_table *decomp2 = nfc_decompose(decomp->to1);
+                    if (decomp2 && decomp2->canon_cls2 > mark_canon_cls && nfc_combine(decomp2->to1, combine_mark, &starter)) {
+                      sort_needed = 1;
+                      vector[i] = (decomp2->to2 << 8) | lookup_canon_cls(decomp2->to2);
+                      grow_vector_if_needed(&vector, onstack, &vec_max, vec_size + 1);
+                      vector[vec_size++] = (decomp->to2 << 8) | lookup_canon_cls(decomp->to2);
+                      fixedup = 1;
+                    }
                   }
-                  vector[i] = (decomp->to2 << 8) | class2;
-                  fixedup = 1;
-                  continue;
                 }
               }
             }
