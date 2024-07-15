@@ -423,6 +423,33 @@ static void stable_sort_combining_marks (uint32_t *vector, uint32_t *scratch, si
   }
 }
 
+/* Shuffle item `i` up or down to get it into the right position */
+static void stable_insert_combining_mark (uint32_t *vector, size_t vec_size, unsigned int i)
+{
+  unsigned int item = vector[i];
+  unsigned int canon_cls = item & 0xFF;
+  if (i > 0) {
+    if (canon_cls < (vector[i-1] & 0xFF)) {
+      do {
+        vector[i] = vector[i-1];
+        i--;
+      } while (i > 0 && canon_cls < (vector[i-1] & 0xFF));
+      vector[i] = item;
+      return;
+    }
+  }
+  if (i < vec_size-1) {
+    if (canon_cls > (vector[i+1] & 0xFF)) {
+      do {
+        vector[i] = vector[i+1];
+        i++;
+      } while (i < vec_size-1 && canon_cls > (vector[i+1] & 0xFF));
+      vector[i] = item;
+      return;
+    }
+  }
+}
+
 static void add_utf8char (luaL_Buffer *b, utfint ch);
 
 static inline void grow_vector_if_needed (uint32_t **vector, uint32_t *onstack, size_t *size, size_t needed)
@@ -530,8 +557,6 @@ process_combining_marks:
 
         /* Check if any of those combining marks are in violation of NFC */
         unsigned int i = 0;
-        /* Although we already sorted the combining marks, conversion may put them out of order again */
-        int sort_needed = 0;
         while (i < vec_size) {
           utfint combine_mark = vector[i] >> 8;
           nfc_table *mark_entry = nfc_quickcheck(combine_mark);
@@ -570,22 +595,24 @@ process_combining_marks:
                      * In other words, the base character was wrongly combined with a "lower-priority"
                      * combining mark; fix that up */
                     unsigned int class2 = lookup_canon_cls(decomp->to2);
-                    if (class2 != mark_canon_cls) {
-                      sort_needed = 1;
-                    }
-                    vector[i] = (decomp->to2 << 8) | class2;
+                    memmove(&vector[1], &vector[0], sizeof(uint32_t) * i);
+                    vector[0] = (decomp->to2 << 8) | class2;
+                    stable_insert_combining_mark(vector, vec_size, 0);
                     fixedup = 1;
                     continue;
                   } else {
                     decompose_table *decomp2 = nfc_decompose(decomp->to1);
                     if (decomp2 && decomp2->canon_cls2 > mark_canon_cls && nfc_combine(decomp2->to1, combine_mark, &starter)) {
                       grow_vector_if_needed(&vector, onstack, &vec_max, vec_size + 1);
-                      vector[i] = (decomp2->to2 << 8) | lookup_canon_cls(decomp2->to2);
                       memmove(&vector[i+2], &vector[i+1], sizeof(uint32_t) * (vec_size - i - 1));
-                      vector[i+1] = (decomp->to2 << 8) | lookup_canon_cls(decomp->to2);
+                      memmove(&vector[2], &vector[0], sizeof(uint32_t) * i);
+                      vector[0] = (decomp2->to2 << 8) | lookup_canon_cls(decomp2->to2);
+                      vector[1] = (decomp->to2 << 8) | lookup_canon_cls(decomp->to2);
                       vec_size++;
-                      sort_needed = 1;
+                      stable_insert_combining_mark(vector, vec_size, 1);
+                      stable_insert_combining_mark(vector, vec_size, 0);
                       fixedup = 1;
+                      continue;
                     }
                   }
                 }
@@ -595,12 +622,6 @@ process_combining_marks:
           i++;
         }
 
-        if (sort_needed && vec_size > 1) {
-          /* Conversion of combining marks to standard form may have put them out of order */
-          uint32_t *scratch = malloc(vec_size * sizeof(uint32_t));
-          stable_sort_combining_marks(vector, scratch, vec_size);
-          free(scratch);
-        }
         if (fixedup) {
           /* The preceding starter/combining mark sequence was bad; convert fixed-up codepoints
            * to UTF-8 bytes */
