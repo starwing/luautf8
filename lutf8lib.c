@@ -579,10 +579,12 @@ process_combining_marks:
                   } else {
                     decompose_table *decomp2 = nfc_decompose(decomp->to1);
                     if (decomp2 && decomp2->canon_cls2 > mark_canon_cls && nfc_combine(decomp2->to1, combine_mark, &starter)) {
-                      sort_needed = 1;
-                      vector[i] = (decomp2->to2 << 8) | lookup_canon_cls(decomp2->to2);
                       grow_vector_if_needed(&vector, onstack, &vec_max, vec_size + 1);
-                      vector[vec_size++] = (decomp->to2 << 8) | lookup_canon_cls(decomp->to2);
+                      vector[i] = (decomp2->to2 << 8) | lookup_canon_cls(decomp2->to2);
+                      memmove(&vector[i+2], &vector[i+1], sizeof(uint32_t) * (vec_size - i - 1));
+                      vector[i+1] = (decomp->to2 << 8) | lookup_canon_cls(decomp->to2);
+                      vec_size++;
+                      sort_needed = 1;
                       fixedup = 1;
                     }
                   }
