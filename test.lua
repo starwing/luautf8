@@ -440,6 +440,9 @@ assert(utf8.normalize_nfc("\200\148\204\160\204\148\204\164") == "\200\148\204\1
 -- those two resulting combining marks might be reordered with a following combining
 -- mark
 assert(utf8.normalize_nfc("\199\154\204\164") == "\225\185\179\204\136\204\140")
+-- When a codepoint decomposes to a starter followed by 2 combining marks, we need to
+-- make sure those combining marks are in the right order with any following ones
+assert(utf8.normalize_nfc("\199\160\205\129\204\168") == "\196\132\204\135\204\132\204\129")
 
 
 -- Official set of test cases for grapheme cluster segmentation, provided by Unicode Consortium
