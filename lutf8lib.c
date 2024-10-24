@@ -972,6 +972,24 @@ static int Lutf8_char (lua_State *L) {
   return 1;
 }
 
+static int Lutf8_ispunct (lua_State *L) {
+  int res;
+  int i, n = lua_gettop(L); /* number of arguments */
+
+  if (n < 1) {
+    return luaL_error(L, "must one params");
+  }
+
+  lua_Integer code = luaL_checkinteger(L, 1);
+  luaL_argcheck(L, code <= UTF8_MAXCP, i, "value out of range");
+
+  res = utf8_ispunct (code);
+
+  lua_pushinteger (L, res);
+
+  return 1;
+}
+
 #define bind_converter(name)                                   \
 static int Lutf8_##name (lua_State *L) {                        \
   int t = lua_type(L, 1);                                      \
@@ -2201,6 +2219,7 @@ LUALIB_API int luaopen_utf8 (lua_State *L) {
     ENTRY(isnfc),
     ENTRY(normalize_nfc),
     ENTRY(grapheme_indices),
+    ENTRY(ispunct),
 #undef  ENTRY
     { NULL, NULL }
   };
