@@ -1144,11 +1144,16 @@ static int Lutf8_offset (lua_State *L) {
        }
      }
   }
-  if (n == 0)  /* did it find given character? */
-    lua_pushinteger(L, posi + 1);
-  else  /* no such character */
-    lua_pushnil(L);
-  return 1;
+  if (n != 0) return lua_pushnil(L), 1;
+  lua_pushinteger(L, posi + 1);
+  if ((s[posi] & 0x80) != 0) {
+    do {
+      posi++;
+    } while (iscontp(s + posi + 1));
+  }
+  /* else one-byte character: final position is the initial one */
+  lua_pushinteger(L, posi + 1);  /* 'posi' now is the final position */
+  return 2;
 }
 
 static int Lutf8_next (lua_State *L) {
