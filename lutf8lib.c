@@ -29,7 +29,7 @@ static int utf8_invalid (utfint ch)
 
 static size_t utf8_encode (char *buff, utfint x) {
   int n = 1;  /* number of bytes put in buffer (backwards) */
-  lua_assert(x <= UTF8_MAX);
+  assert(x <= UTF8_MAX);
   if (x < 0x80)  /* ascii? */
     buff[UTF8_BUFFSZ - 1] = x & 0x7F;
   else {  /* need continuation bytes */
