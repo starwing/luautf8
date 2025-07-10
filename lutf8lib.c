@@ -493,9 +493,9 @@ static void string_to_nfc (lua_State *L, luaL_Buffer *buff, const char *s, const
    * If it is, we memcpy the bytes verbatim into the output buffer. If it is not, then we
    * convert the codepoints to NFC and then emit those codepoints as UTF-8 bytes. */
 
-  utfint starter = -1, ch; /* 'starter' is last starter codepoint seen */
+  utfint starter = (utfint)-1, ch; /* 'starter' is last starter codepoint seen */
   const char *to_copy = s; /* pointer to next bytes we might need to memcpy into output buffer */
-  unsigned int prev_canon_cls = 0, canon_cls = 0;
+  unsigned int prev_canon_cls = 0;
   int fixedup = 0; /* has the sequence currently under consideration been modified to make it NFC? */
 
   /* Temporary storage for a sequence of consecutive combining marks
@@ -626,7 +626,7 @@ process_combining_marks:
         if (fixedup) {
           /* The preceding starter/combining mark sequence was bad; convert fixed-up codepoints
            * to UTF-8 bytes */
-          if (starter != -1)
+          if (starter != (utfint)-1)
             add_utf8char(buff, starter);
           for (unsigned int i = 0; i < vec_size; i++)
             add_utf8char(buff, vector[i] >> 8);
@@ -643,7 +643,7 @@ process_combining_marks:
         }
         vec_size = 0; /* Clear vector of combining marks in readiness for next such sequence */
         fixedup = 0;
-      } else if (starter != -1) {
+      } else if (starter != (utfint)-1) {
         /* This starter was preceded immediately by another starter
          * Check if this one should combine with it */
         fixedup = 0;
@@ -725,7 +725,7 @@ process_combining_marks:
 
   if (vec_size)
     goto process_combining_marks; /* Finish processing trailing combining marks */
-  if (starter != -1)
+  if (starter != (utfint)-1)
     add_utf8char(buff, starter);
 
   if (vector != onstack)
@@ -2152,9 +2152,10 @@ next_iteration: ;
 
 static int Lutf8_grapheme_indices(lua_State *L) {
   size_t len;
-  const char *s = luaL_checklstring(L, 1, &len);
-  lua_Integer start = byte_relat(luaL_optinteger(L, 2, 1), len);
-  lua_Integer end = byte_relat(luaL_optinteger(L, 3, len), len);
+  lua_Integer start, end;
+  luaL_checklstring(L, 1, &len);
+  start = byte_relat(luaL_optinteger(L, 2, 1), len);
+  end = byte_relat(luaL_optinteger(L, 3, len), len);
   luaL_argcheck(L, start >= 1, 2, "out of range");
   luaL_argcheck(L, end <= (lua_Integer)len, 3, "out of range");
 
