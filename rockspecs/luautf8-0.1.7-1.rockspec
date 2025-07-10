@@ -1,8 +1,8 @@
 package = "luautf8"
-version = "0.1.6-1"
+version = "0.1.7-1"
 source = {
-   url = "https://github.com/starwing/luautf8/archive/refs/tags/0.1.6.tar.gz",
-   dir = "luautf8-0.1.6"
+   url = "https://github.com/starwing/luautf8/archive/refs/tags/0.1.7.tar.gz",
+   dir = "luautf8-0.1.7"
 }
 description = {
    summary = "A UTF-8 support module for Lua",
