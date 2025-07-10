@@ -42,9 +42,15 @@ local function assert_table_equal(t1, t2, i, j)
    i = i or 1
    j = j or #t2
    local len = j-i+1
-   assert(#t1 == len)
+   local has_nil = false
    for cur = 1, len do
       assert(t1[cur] == t2[cur+i-1])
+      if t1[cur] == nil then
+         has_nil = true
+      end
+   end
+   if not has_nil then
+      assert(#t1 == len)
    end
 end
 assert_table_equal({utf8.byte(s, 2)}, t, 2, 2)
@@ -453,6 +459,7 @@ local grapheme_test_cases = {}
 f = io.open('GraphemeBreakTest.txt', 'r')
 for line in f:lines() do
    if not line:match("^#") and not line:match("^@") then
+      local line = line
       line = line:gsub("#.*", "")
       line = line:gsub("^%s*÷%s*", "")
       line = line:gsub("%s*÷%s*$", "")
