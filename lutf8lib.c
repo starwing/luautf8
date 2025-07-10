@@ -17,7 +17,7 @@
 #define UTF8_BUFFSZ 8
 #define UTF8_MAX    0x7FFFFFFFu
 #define UTF8_MAXCP  0x10FFFFu
-#define iscont(p)   ((*(p) & 0xC0) == 0x80)
+#define iscontp(p)    ((*(p) & 0xC0) == 0x80)
 #define CAST(tp,expr) ((tp)(expr))
 
 #ifndef LUA_QL
@@ -74,12 +74,12 @@ static const char *utf8_decode (const char *s, utfint *val, int strict) {
 }
 
 static const char *utf8_prev (const char *s, const char *e) {
-  while (s < e && iscont(e - 1)) --e;
+  while (s < e && iscontp(e - 1)) --e;
   return s < e ? e - 1 : s;
 }
 
 static const char *utf8_next (const char *s, const char *e) {
-  while (s < e && iscont(s + 1)) ++s;
+  while (s < e && iscontp(s + 1)) ++s;
   return s < e ? s + 1 : e;
 }
 
@@ -1090,7 +1090,7 @@ static int push_offset (lua_State *L, const char *s, const char *e, lua_Integer 
   const char *p;
   if (idx != 0)
     p = utf8_offset(s, e, offset, idx);
-  else if (p = s+offset-1, iscont(p))
+  else if (p = s+offset-1, iscontp(p))
     p = utf8_prev(s, p);
   if (p == NULL || p == e) return 0;
   utf8_decode(p, &ch, 0);
@@ -1123,15 +1123,15 @@ static int Lutf8_offset (lua_State *L) {
                    "position out of range");
   if (n == 0) {
     /* find beginning of current byte sequence */
-    while (posi > 0 && iscont(s + posi)) posi--;
+    while (posi > 0 && iscontp(s + posi)) posi--;
   } else {
-    if (iscont(s + posi))
+    if (iscontp(s + posi))
       return luaL_error(L, "initial position is a continuation byte");
     if (n < 0) {
        while (n < 0 && posi > 0) {  /* move back */
          do {  /* find beginning of previous character */
            posi--;
-         } while (posi > 0 && iscont(s + posi));
+         } while (posi > 0 && iscontp(s + posi));
          n++;
        }
      } else {
@@ -1139,7 +1139,7 @@ static int Lutf8_offset (lua_State *L) {
        while (n > 0 && posi < (lua_Integer)len) {
          do {  /* find beginning of next character */
            posi++;
-         } while (iscont(s + posi));  /* (cannot pass final '\0') */
+         } while (iscontp(s + posi));  /* (cannot pass final '\0') */
          n--;
        }
      }
@@ -1664,7 +1664,7 @@ static int find_aux (lua_State *L, int find) {
     const char *s2 = lmemfind(init, es-init, p, ep-p);
     if (s2) {
       const char *e2 = s2 + (ep - p);
-      if (iscont(e2)) e2 = utf8_next(e2, es);
+      if (iscontp(e2)) e2 = utf8_next(e2, es);
       lua_pushinteger(L, idx = get_index(s2, s, es) + 1);
       lua_pushinteger(L, idx + get_index(e2, s2, es) - 1);
       return 2;
