@@ -503,6 +503,10 @@ for idx,value in ipairs({ 1, 5 }) do
    assert(clusters[idx] == value)
 end
 
+local str = '中文标点符号测试：文字内容，９８满意,hello world'
+for p, ch in utf8.codes(str) do
+	print (ch, utf8.char(ch), utf8.ispunct(ch))
+end
 
 print "OK"
 
