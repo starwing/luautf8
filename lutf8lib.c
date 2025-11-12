@@ -14,6 +14,8 @@
 
 /* UTF-8 string operations */
 
+#define LUTF8_VERSION "0.2.0"
+
 #define UTF8_BUFFSZ 8
 #define UTF8_MAX    0x7FFFFFFFu
 #define UTF8_MAXCP  0x10FFFFu
@@ -252,10 +254,9 @@ static int lookup_canon_cls (utfint ch) {
 static nfc_table *nfc_quickcheck (utfint ch) {
   /* The first character which needs to be checked for possible NFC violations
    * is U+0300 COMBINING GRAVE ACCENT */
-  if (ch < 0x300) {
-    return NULL;
-  }
-  size_t begin = 0, end = table_size(nfc_quickcheck_table);
+  size_t begin = 0, end;
+  if (ch < 0x300) return NULL;
+  end = table_size(nfc_quickcheck_table);
 
   while (begin < end) {
     size_t mid = (begin + end) / 2;
@@ -461,8 +462,7 @@ static inline void grow_vector_if_needed (uint32_t **vector, uint32_t *onstack, 
     uint32_t *new_vector = malloc(new_size * sizeof(uint32_t));
     memcpy(new_vector, *vector, current_size * sizeof(uint32_t));
     *size = new_size;
-    if (*vector != onstack)
-      free(*vector);
+    if (*vector != onstack) free(*vector);
     *vector = new_vector;
   }
 }
@@ -504,20 +504,19 @@ static void string_to_nfc (lua_State *L, luaL_Buffer *buff, const char *s, const
   uint32_t onstack[8];
   size_t vec_size = 0, vec_max = sizeof(onstack)/sizeof(uint32_t);
   uint32_t *vector = onstack;
+  nfc_table *entry = NULL;
 
   while (s < e) {
     const char *new_s = utf8_decode(s, &ch, 1);
     if (new_s == NULL) {
-      if (vector != onstack)
-        free(vector);
-      lua_pushstring(L, "string is not valid UTF-8");
-      lua_error(L);
+      if (vector != onstack) free(vector);
+      luaL_error(L, "string is not valid UTF-8");
     }
     unsigned int canon_cls = lookup_canon_cls(ch);
 
     if (!canon_cls) {
       /* This is a starter codepoint */
-      nfc_table *entry = nfc_quickcheck(ch);
+      entry = nfc_quickcheck(ch);
 
       /* But in rare cases, a deprecated 'starter' codepoint may convert
        * to combining marks instead!
@@ -728,8 +727,7 @@ process_combining_marks:
   if (starter != (utfint)-1)
     add_utf8char(buff, starter);
 
-  if (vector != onstack)
-    free(vector);
+  if (vector != onstack) free(vector);
 }
 
 /* Grapheme cluster support */
@@ -801,15 +799,15 @@ static int utf8_isalnum (utfint ch) {
   return 0;
 }
 
-static int utf8_width (utfint ch, int ambi_is_single) {
+static int utf8_width (utfint ch, int ambiwidth, int default_width) {
   if (find_in_range(doublewidth_table, table_size(doublewidth_table), ch))
     return 2;
   if (find_in_range(ambiwidth_table, table_size(ambiwidth_table), ch))
-    return ambi_is_single ? 1 : 2;
+    return ambiwidth;
   if (find_in_range(compose_table, table_size(compose_table), ch))
-    return 0;
+    return default_width;
   if (find_in_range(unprintable_table, table_size(unprintable_table), ch))
-    return 0;
+    return default_width;
   return 1;
 }
 
@@ -850,17 +848,21 @@ static lua_Integer byte_relat (lua_Integer pos, size_t len) {
   else return (lua_Integer)len + pos + 1;
 }
 
+static void check_byte_range(lua_State *L, size_t len, lua_Integer *posi, lua_Integer *posj) {
+  luaL_argcheck(L, 1 <= *posi && --*posi <= (lua_Integer)len, 2,
+      "initial position out of bounds");
+  luaL_argcheck(L, --*posj < (lua_Integer)len, 3,
+      "final position out of bounds");
+}
+
 static int Lutf8_len (lua_State *L) {
   size_t len, n;
   const char *s = luaL_checklstring(L, 1, &len), *p, *e;
   lua_Integer posi = byte_relat(luaL_optinteger(L, 2, 1), len);
-  lua_Integer pose = byte_relat(luaL_optinteger(L, 3, -1), len);
+  lua_Integer posj = byte_relat(luaL_optinteger(L, 3, len), len);
   int lax = lua_toboolean(L, 4);
-  luaL_argcheck(L, 1 <= posi && --posi <= (lua_Integer)len, 2,
-                   "initial position out of string");
-  luaL_argcheck(L, --pose < (lua_Integer)len, 3,
-                   "final position out of string");
-  for (n = 0, p=s+posi, e=s+pose+1; p < e; ++n) {
+  check_byte_range(L, len, &posi, &posj);
+  for (n = 0, p=s+posi, e=s+posj+1; p < e; ++n) {
     if (lax)
       p = utf8_next(p, e);
     else {
@@ -881,9 +883,9 @@ static int Lutf8_len (lua_State *L) {
 static int Lutf8_sub (lua_State *L) {
   const char *e, *s = check_utf8(L, 1, &e);
   lua_Integer posi = luaL_checkinteger(L, 2);
-  lua_Integer pose = luaL_optinteger(L, 3, -1);
-  if (utf8_range(s, e, &posi, &pose))
-    lua_pushlstring(L, s+posi, pose-posi);
+  lua_Integer posj = luaL_optinteger(L, 3, -1);
+  if (utf8_range(s, e, &posi, &posj))
+    lua_pushlstring(L, s+posi, posj-posi);
   else
     lua_pushliteral(L, "");
   return 1;
@@ -921,9 +923,9 @@ static int Lutf8_byte (lua_State *L) {
   size_t n = 0;
   const char *e, *s = check_utf8(L, 1, &e);
   lua_Integer posi = luaL_optinteger(L, 2, 1);
-  lua_Integer pose = luaL_optinteger(L, 3, posi);
-  if (utf8_range(s, e, &posi, &pose)) {
-    for (e = s + pose, s = s + posi; s < e; ++n) {
+  lua_Integer posj = luaL_optinteger(L, 3, posi);
+  if (utf8_range(s, e, &posi, &posj)) {
+    for (e = s + posj, s = s + posi; s < e; ++n) {
       utfint ch = 0;
       s = utf8_safe_decode(L, s, &ch);
       lua_pushinteger(L, ch);
@@ -936,19 +938,19 @@ static int Lutf8_codepoint (lua_State *L) {
   const char *e, *s = check_utf8(L, 1, &e);
   size_t len = e-s;
   lua_Integer posi = byte_relat(luaL_optinteger(L, 2, 1), len);
-  lua_Integer pose = byte_relat(luaL_optinteger(L, 3, posi), len);
+  lua_Integer posj = byte_relat(luaL_optinteger(L, 3, posi), len);
   int lax = lua_toboolean(L, 4);
   int n;
   const char *se;
-  luaL_argcheck(L, posi >= 1, 2, "out of range");
-  luaL_argcheck(L, pose <= (lua_Integer)len, 3, "out of range");
-  if (posi > pose) return 0;  /* empty interval; return no values */
-  if (pose - posi >= INT_MAX)  /* (lua_Integer -> int) overflow? */
+  luaL_argcheck(L, posi >= 1, 2, "out of bounds");
+  luaL_argcheck(L, posj <= (lua_Integer)len, 3, "out of bounds");
+  if (posi > posj) return 0;  /* empty interval; return no values */
+  if (posj - posi >= INT_MAX)  /* (lua_Integer -> int) overflow? */
     return luaL_error(L, "string slice too long");
-  n = (int)(pose -  posi + 1);
+  n = (int)(posj -  posi + 1);
   luaL_checkstack(L, n, "string slice too long");
   n = 0;  /* count the number of returns */
-  se = s + pose;  /* string end */
+  se = s + posj;  /* string end */
   for (n = 0, s += posi - 1; s < se;) {
     utfint code = 0;
     s = utf8_safe_decode(L, s, &code);
@@ -1031,9 +1033,8 @@ static int Lutf8_escape (lua_State *L) {
       case '4': case '5': case '6': case '7':
       case '8': case '9': case '{':
         break;
-      case 'x': case 'X': hex = 1; /* fall through */
-      case 'u': case 'U': if (s+1 < e) { ++s; break; }
-                            /* fall through */
+      case 'x': case 'X': hex = 1; /* FALLTHROUGH */
+      case 'u': case 'U': if (s+1 < e) { ++s; break; } /* FALLTHROUGH */
       default:
         s = utf8_safe_decode(L, s, &ch);
         goto next;
@@ -1072,14 +1073,14 @@ static int Lutf8_insert (lua_State *L) {
 static int Lutf8_remove (lua_State *L) {
   const char *e, *s = check_utf8(L, 1, &e);
   lua_Integer posi = luaL_optinteger(L, 2, -1);
-  lua_Integer pose = luaL_optinteger(L, 3, -1);
-  if (!utf8_range(s, e, &posi, &pose))
+  lua_Integer posj = luaL_optinteger(L, 3, -1);
+  if (!utf8_range(s, e, &posi, &posj))
     lua_settop(L, 1);
   else {
     luaL_Buffer b;
     luaL_buffinit(L, &b);
     luaL_addlstring(&b, s, posi);
-    luaL_addlstring(&b, s+pose, e-s-pose);
+    luaL_addlstring(&b, s+posj, e-s-posj);
     luaL_pushresult(&b);
   }
   return 1;
@@ -1191,54 +1192,89 @@ static int Lutf8_codes (lua_State *L) {
   return 3;
 }
 
+static int width_opt (lua_State *L, int idx, int *pdefault) {
+  int ambiwidth = CAST(int, luaL_optinteger(L, idx, 1));
+  if (pdefault != NULL) *pdefault = CAST(int, luaL_optinteger(L, idx+1, 0));
+  return ambiwidth;
+}
+
 static int Lutf8_width (lua_State *L) {
   int t = lua_type(L, 1);
-  int ambi_is_single = !lua_toboolean(L, 2);
-  int default_width = CAST(int, luaL_optinteger(L, 3, 0));
-  if (t == LUA_TNUMBER) {
-    size_t chwidth = utf8_width(CAST(utfint, lua_tointeger(L, 1)), ambi_is_single);
-    if (chwidth == 0) chwidth = default_width;
-    lua_pushinteger(L, (lua_Integer)chwidth);
-  } else if (t != LUA_TSTRING)
+  int width = 0, ambiwidth, default_width;
+  if (t != LUA_TNUMBER && t != LUA_TSTRING)
     return typeerror(L, 1, "number/string");
-  else {
-    const char *e, *s = to_utf8(L, 1, &e);
-    int width = 0;
+  if (t == LUA_TSTRING) {
+    size_t len;
+    const char *e, *s = luaL_checklstring(L, 1, &len);
+    lua_Integer posi = byte_relat(luaL_optinteger(L, 2, 1), len);
+    lua_Integer posj = byte_relat(luaL_optinteger(L, 3, len), len);
+    ambiwidth = width_opt(L, 4, &default_width);
+    luaL_argcheck(L, 1 <= posi && --posi <= (lua_Integer)len, 2,
+        "initial position out of bounds");
+    luaL_argcheck(L, --posj < (lua_Integer)len, 3,
+        "final position out of bounds");
+    s += posi, e = s + posj + 1;
     while (s < e) {
       utfint ch = 0;
-      int chwidth;
       s = utf8_safe_decode(L, s, &ch);
-      chwidth = utf8_width(ch, ambi_is_single);
-      width += chwidth == 0 ? default_width : chwidth;
+      width += utf8_width(ch, ambiwidth, default_width);
     }
-    lua_pushinteger(L, (lua_Integer)width);
+    return lua_pushinteger(L, (lua_Integer)width), 1;
   }
-  return 1;
+  ambiwidth = width_opt(L, 2, &default_width);
+  return lua_pushinteger(L, utf8_width(CAST(utfint, lua_tointeger(L, 1)),
+        ambiwidth, default_width)), 1;
 }
 
 static int Lutf8_widthindex (lua_State *L) {
-  const char *e, *s = check_utf8(L, 1, &e);
-  int width = CAST(int, luaL_checkinteger(L, 2));
-  int ambi_is_single = !lua_toboolean(L, 3);
-  int default_width = CAST(int, luaL_optinteger(L, 4, 0));
-  size_t idx = 1;
-  while (s < e) {
+  size_t len;
+  const char *e, *s = luaL_checklstring(L, 1, &len);
+  int next, width = CAST(int, luaL_checkinteger(L, 2));
+  lua_Integer posi = byte_relat(luaL_optinteger(L, 3, 1), len);
+  lua_Integer posj = byte_relat(luaL_optinteger(L, 4, len), len), idx;
+  int default_width, ambiwidth = width_opt(L, 5, &default_width);
+  check_byte_range(L, len, &posi, &posj);
+  for (idx = 1, s += posi, e = s + posj + 1; s < e; ++idx, width = next) {
     utfint ch = 0;
-    size_t chwidth;
     s = utf8_safe_decode(L, s, &ch);
-    chwidth = utf8_width(ch, ambi_is_single);
-    if (chwidth == 0) chwidth = default_width;
-    width -= CAST(int, chwidth);
-    if (width <= 0) {
+    next = width - utf8_width(ch, ambiwidth, default_width);
+    if (next <= 0) {
       lua_pushinteger(L, idx);
-      lua_pushinteger(L, width + chwidth);
-      lua_pushinteger(L, chwidth);
+      lua_pushinteger(L, width);
+      lua_pushinteger(L, width - next);
       return 3;
     }
-    ++idx;
   }
-  lua_pushinteger(L, (lua_Integer)idx);
-  return 1;
+  return lua_pushinteger(L, idx), 1;
+}
+
+static int Lutf8_widthlimit(lua_State *L) {
+  size_t len;
+  const char *s, *e, *n, *h = luaL_checklstring(L, 1, &len);
+  lua_Integer width = luaL_checkinteger(L, 2);
+  lua_Integer posi = byte_relat(luaL_optinteger(L, 3, 1), len);
+  lua_Integer posj = byte_relat(luaL_optinteger(L, 4, len), len);
+  int chwidth, default_width, ambiwidth = width_opt(L, 5, &default_width);
+  utfint ch;
+  check_byte_range(L, len, &posi, &posj);
+  s = h + posi, e = s + posj + 1;
+  if (width >= 0) {
+    for (; s < e && width != 0; s = n, width -= chwidth) {
+      n = utf8_safe_decode(L, s, &ch);
+      chwidth = utf8_width(ch, ambiwidth, default_width);
+      if (width < chwidth) break;
+    }
+    lua_pushinteger(L, s - h);
+  } else {
+    for (; s < e && width != 0; e = n, width += chwidth) {
+      utf8_safe_decode(L, n = utf8_prev(s, e), &ch);
+      chwidth = utf8_width(ch, ambiwidth, default_width);
+      if (-width < chwidth) break;
+    }
+    lua_pushinteger(L, e - h + 1);
+  }
+  lua_pushinteger(L, width);
+  return 2;
 }
 
 static int Lutf8_ncasecmp (lua_State *L) {
@@ -1564,7 +1600,7 @@ static const char *match (MatchState *ms, const char *s, const char *p) {
             }
             case '+':  /* 1 or more repetitions */
               s = next_s;  /* 1 match already done */
-              /* fall through */
+              /* FALLTHROUGH */
             case '*':  /* 0 or more repetitions */
               s = max_expand(ms, s, p, ep);
               break;
@@ -1925,10 +1961,7 @@ static int Lutf8_isnfc(lua_State *L) {
 
   while (s < e) {
     s = utf8_decode(s, &ch, 1);
-    if (s == NULL) {
-      lua_pushstring(L, "string is not valid UTF-8");
-      lua_error(L);
-    }
+    luaL_argcheck(L, (s != NULL), 1, "string is not valid UTF-8");
     if (ch < 0x300) {
       starter = ch; /* Fast path */
       prev_canon_cls = 0;
@@ -1966,10 +1999,7 @@ static int Lutf8_normalize_nfc(lua_State *L) {
    * input string unchanged */
   while (p < e) {
     const char *new_p = utf8_decode(p, &ch, 1);
-    if (new_p == NULL) {
-      lua_pushstring(L, "string is not valid UTF-8");
-      lua_error(L);
-    }
+    luaL_argcheck(L, (new_p != NULL), 1, "string is not valid UTF-8");
 
     unsigned int canon_cls = lookup_canon_cls(ch);
     if (canon_cls && canon_cls < prev_canon_cls) {
@@ -2181,27 +2211,31 @@ LUALIB_API int luaopen_utf8 (lua_State *L) {
     ENTRY(codes),
     ENTRY(codepoint),
 
+    ENTRY(find),
+    ENTRY(gmatch),
+    ENTRY(gsub),
+    ENTRY(match),
     ENTRY(len),
     ENTRY(sub),
     ENTRY(reverse),
     ENTRY(lower),
     ENTRY(upper),
-    ENTRY(title),
-    ENTRY(fold),
     ENTRY(byte),
     ENTRY(char),
+
+    ENTRY(title),
+    ENTRY(fold),
     ENTRY(escape),
     ENTRY(insert),
     ENTRY(remove),
     ENTRY(charpos),
     ENTRY(next),
+    ENTRY(ncasecmp),
+
     ENTRY(width),
     ENTRY(widthindex),
-    ENTRY(ncasecmp),
-    ENTRY(find),
-    ENTRY(gmatch),
-    ENTRY(gsub),
-    ENTRY(match),
+    ENTRY(widthlimit),
+
     ENTRY(isvalid),
     ENTRY(invalidoffset),
     ENTRY(clean),
@@ -2220,6 +2254,9 @@ LUALIB_API int luaopen_utf8 (lua_State *L) {
 
   lua_pushlstring(L, UTF8PATT, sizeof(UTF8PATT)-1);
   lua_setfield(L, -2, "charpattern");
+
+  lua_pushliteral(L, LUTF8_VERSION);
+  lua_setfield(L, -2, "version");
 
   return 1;
 }

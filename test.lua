@@ -3,48 +3,49 @@ local unpack = unpack or table.unpack
 local E = utf8.escape
 
 local function get_codes(s)
-   return table.concat({utf8.byte(s, 1, -1)}, ' ')
+   return table.concat({ utf8.byte(s, 1, -1) }, ' ')
 end
 
-local t = { 20985, 20984, 26364, 25171, 23567, 24618, 20861 } 
--- test escape & len
-assert(get_codes(E"%123%xabc%x{ABC}%d%u{456}") == '123 2748 2748 100 456')
+local function assert_error(f, msg)
+   local s, e = pcall(f)
+   return assert(not s and e:match(msg))
+end
 
-local s = E('%'..table.concat(t, '%'))
+local t = { 20985, 20984, 26364, 25171, 23567, 24618, 20861 }
+-- test escape & len
+assert(get_codes(E "%123%xabc%x{ABC}%d%u{456}") == '123 2748 2748 100 456')
+assert_error(function() E "%x{xyz}" end, "invalid escape 'x'")
+
+local s = E('%' .. table.concat(t, '%'))
 assert(utf8.len(s) == 7)
 assert(get_codes(s) == table.concat(t, ' '))
 
 
 -- test offset
 
-local function assert_error(f, msg)
-   local s,e = pcall(f)
-   return assert(not s and e:match(msg))
-end
-
 assert(utf8.offset("中国", 0) == 1)
-assert(utf8.offset("中国", 0,1) == 1)
-assert(utf8.offset("中国", 0,2) == 1)
-assert(utf8.offset("中国", 0,3) == 1)
-assert(utf8.offset("中国", 0,4) == 4)
-assert(utf8.offset("中国", 0,5) == 4)
+assert(utf8.offset("中国", 0, 1) == 1)
+assert(utf8.offset("中国", 0, 2) == 1)
+assert(utf8.offset("中国", 0, 3) == 1)
+assert(utf8.offset("中国", 0, 4) == 4)
+assert(utf8.offset("中国", 0, 5) == 4)
 assert(utf8.offset("中国", 1) == 1)
-assert_error(function() utf8.offset("中国", 1,2) end,
-             "initial position is a continuation byte")
+assert_error(function() utf8.offset("中国", 1, 2) end,
+   "initial position is a continuation byte")
 assert(utf8.offset("中国", 2) == 4)
 assert(utf8.offset("中国", 3) == 7)
 assert(utf8.offset("中国", 4) == nil)
-assert(utf8.offset("中国", -1,-3) == 1)
-assert(utf8.offset("中国", -1,1) == nil)
+assert(utf8.offset("中国", -1, -3) == 1)
+assert(utf8.offset("中国", -1, 1) == nil)
 
 -- test byte
 local function assert_table_equal(t1, t2, i, j)
    i = i or 1
    j = j or #t2
-   local len = j-i+1
+   local len = j - i + 1
    local has_nil = false
    for cur = 1, len do
-      assert(t1[cur] == t2[cur+i-1])
+      assert(t1[cur] == t2[cur + i - 1])
       if t1[cur] == nil then
          has_nil = true
       end
@@ -53,14 +54,14 @@ local function assert_table_equal(t1, t2, i, j)
       assert(#t1 == len)
    end
 end
-assert_table_equal({utf8.byte(s, 2)}, t, 2, 2)
-assert_table_equal({utf8.byte(s, 1, -1)}, t)
-assert_table_equal({utf8.byte(s, -100)}, {})
-assert_table_equal({utf8.byte(s, -100, -200)}, {})
-assert_table_equal({utf8.byte(s, -200, -100)}, {})
-assert_table_equal({utf8.byte(s, 100)}, {})
-assert_table_equal({utf8.byte(s, 100, 200)}, {})
-assert_table_equal({utf8.byte(s, 200, 100)}, {})
+assert_table_equal({ utf8.byte(s, 2) }, t, 2, 2)
+assert_table_equal({ utf8.byte(s, 1, -1) }, t)
+assert_table_equal({ utf8.byte(s, -100) }, {})
+assert_table_equal({ utf8.byte(s, -100, -200) }, {})
+assert_table_equal({ utf8.byte(s, -200, -100) }, {})
+assert_table_equal({ utf8.byte(s, 100) }, {})
+assert_table_equal({ utf8.byte(s, 100, 200) }, {})
+assert_table_equal({ utf8.byte(s, 200, 100) }, {})
 
 
 -- test char
@@ -68,11 +69,11 @@ assert(s == utf8.char(unpack(t)))
 
 -- test range
 for i = 1, #t do
-    assert(utf8.byte(s, i) == t[i])
+   assert(utf8.byte(s, i) == t[i])
 end
 
 -- test sub
-assert(get_codes(utf8.sub(s, 2, -2)) == table.concat(t, ' ', 2, #t-1))
+assert(get_codes(utf8.sub(s, 2, -2)) == table.concat(t, ' ', 2, #t - 1))
 assert(get_codes(utf8.sub(s, -100)) == table.concat(t, ' '))
 assert(get_codes(utf8.sub(s, -100, -200)) == "")
 assert(get_codes(utf8.sub(s, -100, -100)) == "")
@@ -103,29 +104,29 @@ assert(utf8.remove("abcdef", 100, 200) == "abcdef")
 assert(utf8.remove("abcdef", 200, 100) == "abcdef")
 
 do
-    local s = E"a%255bc"
-    assert(utf8.len(s, 4))
-    assert(string.len(s, 6))
-    assert(utf8.charpos(s) == 1)
-    assert(utf8.charpos(s, 0) == 1)
-    assert(utf8.charpos(s, 1) == 1)
-    assert(utf8.charpos(s, 2) == 2)
-    assert(utf8.charpos(s, 3) == 4)
-    assert(utf8.charpos(s, 4) == 5)
-    assert(utf8.charpos(s, 5) == nil)
-    assert(utf8.charpos(s, 6) == nil)
-    assert(utf8.charpos(s, -1) == 5)
-    assert(utf8.charpos(s, -2) == 4)
-    assert(utf8.charpos(s, -3) == 2)
-    assert(utf8.charpos(s, -4) == 1)
-    assert(utf8.charpos(s, -5) == nil)
-    assert(utf8.charpos(s, -6) == nil)
-    assert(utf8.charpos(s, 3, -1) == 2)
-    assert(utf8.charpos(s, 3, 0) == 2)
-    assert(utf8.charpos(s, 3, 1) == 4)
-    assert(utf8.charpos(s, 6, -3) == 2)
-    assert(utf8.charpos(s, 6, -4) == 1)
-    assert(utf8.charpos(s, 6, -5) == nil)
+   local s = E "a%255bc"
+   assert(utf8.len(s, 4))
+   assert(string.len(s, 6))
+   assert(utf8.charpos(s) == 1)
+   assert(utf8.charpos(s, 0) == 1)
+   assert(utf8.charpos(s, 1) == 1)
+   assert(utf8.charpos(s, 2) == 2)
+   assert(utf8.charpos(s, 3) == 4)
+   assert(utf8.charpos(s, 4) == 5)
+   assert(utf8.charpos(s, 5) == nil)
+   assert(utf8.charpos(s, 6) == nil)
+   assert(utf8.charpos(s, -1) == 5)
+   assert(utf8.charpos(s, -2) == 4)
+   assert(utf8.charpos(s, -3) == 2)
+   assert(utf8.charpos(s, -4) == 1)
+   assert(utf8.charpos(s, -5) == nil)
+   assert(utf8.charpos(s, -6) == nil)
+   assert(utf8.charpos(s, 3, -1) == 2)
+   assert(utf8.charpos(s, 3, 0) == 2)
+   assert(utf8.charpos(s, 3, 1) == 4)
+   assert(utf8.charpos(s, 6, -3) == 2)
+   assert(utf8.charpos(s, 6, -4) == 1)
+   assert(utf8.charpos(s, 6, -5) == nil)
 end
 
 local idx = 1
@@ -150,11 +151,11 @@ assert(utf8.gsub("x^[]+$", "%p", "%%%0") == "x%^%[%]%+%$")
 do
    local s = "\234\128\97"
    assert(utf8.len(s, nil, nil, true) == 2)
-   assert_table_equal({utf8.len(s)}, {nil, 1}, 1, 2)
+   assert_table_equal({ utf8.len(s) }, { nil, 1 }, 1, 2)
 
    -- 1111-0000 10-000000 10-000000 ...
    s = "\240\128\128\128\128"
-   assert_table_equal({utf8.len(s)}, {nil, 1}, 1, 2)
+   assert_table_equal({ utf8.len(s) }, { nil, 1 }, 1, 2)
 end
 
 
@@ -168,9 +169,9 @@ do
    local s = "नमस्ते"
    assert(utf8.len(s) == 6)
    assert(utf8.reverse(s) == "तेस्मन")
-   assert(utf8.reverse(s.." ", true) == " ेत्समन")
-   assert(utf8.match(s..'\2', "%g+") == s)
-   assert_fail(function() utf8.reverse(E"%xD800") end, "invalid UTF%-8 code")
+   assert(utf8.reverse(s .. " ", true) == " ेत्समन")
+   assert(utf8.match(s .. '\2', "%g+") == s)
+   assert_fail(function() utf8.reverse(E "%xD800") end, "invalid UTF%-8 code")
 end
 
 
@@ -180,17 +181,24 @@ assert(utf8.match('%c', '') == nil) -- %c does not match U+F000
 
 -- test codepoint
 for i = 1, 1000 do
-   assert(utf8.codepoint(E("%"..i)) == i)
+   assert(utf8.codepoint(E("%" .. i)) == i)
 end
-assert_fail(function() utf8.codepoint(E"%xD800") end, "invalid UTF%-8 code")
+assert_fail(function() utf8.codepoint(E "%xD800") end, "invalid UTF%-8 code")
 
 -- test escape
-assert_fail(function() E"%{1a1}" end, "invalid escape 'a'")
+assert_fail(function() E "%{1a1}" end, "invalid escape 'a'")
 
 
 -- test codes
-local result = { [1]  = 20985; [4]  = 20984; [7]  = 26364;
-   [10] = 25171; [13] = 23567; [16] = 24618; [19] = 20861; }
+local result = {
+   [1] = 20985,
+   [4] = 20984,
+   [7] = 26364,
+   [10] = 25171,
+   [13] = 23567,
+   [16] = 24618,
+   [19] = 20861,
+}
 for p, c in utf8.codes(s) do
    assert(result[p] == c)
 end
@@ -198,24 +206,150 @@ for p, c in utf8.codes(s, true) do
    assert(result[p] == c)
 end
 assert_fail(function()
-   for p, c in utf8.codes(E"%xD800") do
+   for p, c in utf8.codes(E "%xD800") do
       assert(result[p] == c)
    end
 end, "invalid UTF%-8 code")
 
 
--- test width
-assert(utf8.width('नमस्ते\2') == 5)
-assert(utf8.width(E'%xA1') == 1)
-assert(utf8.width(E'%xA1', 2) == 2)
-assert(utf8.width(E'%x61C') == 0)
-assert(utf8.width "A" == 1)
-assert(utf8.width "Ａ" == 2)
-assert(utf8.width(97) == 1)
-assert(utf8.width(65313) == 2)
-assert_fail(function() utf8.width(true) end, "number/string expected, got boolean")
-assert(utf8.widthindex("abcdef", 3) == 3)
-assert(utf8.widthindex("abcdef", 7) == 7)
+-- Test utf8.width
+do
+   -- Basic ASCII
+   assert(utf8.width('abc') == 3)
+   assert(utf8.width('') == 0)
+
+   -- Fullwidth characters
+   assert(utf8.width('你好') == 4) -- 2 CJK chars
+   assert(utf8.width('こんにちは') == 10) -- 5 Japanese chars
+   assert(utf8.width('Ａ') == 2) -- Fullwidth Latin A
+
+   -- Mixed width
+   assert(utf8.width('hello你好') == 9) -- 5 + 4
+
+   -- Zero-width characters
+   assert(utf8.width('नमस्ते\2') == 5) -- Original test (combining marks)
+
+   -- Ambiguous-width characters
+   local amb_char = string.char(0xC2, 0xA1)       -- U+00A1 ¡ (inverted exclamation)
+   assert(utf8.width(amb_char) == 1)              -- Default: single width
+   assert(utf8.width(amb_char, nil, nil, 2) == 2) -- Treat as wide
+
+   -- Code point input
+   assert(utf8.width(97) == 1)     -- 'a'
+   assert(utf8.width(65313) == 2)  -- 'Ａ' fullwidth A
+   assert(utf8.width(0x4E2D) == 2) -- '中' CJK
+
+   -- Unprintable characters
+   assert(utf8.width(E '%x{200B}') == 0)                 -- U+200B (zero-width space)
+   assert(utf8.width(E '%x{200B}', nil, nil, 1, 4) == 4) -- with custom default width
+
+   -- Type errors
+   assert_fail(function() utf8.width(true) end,
+      "number/string expected, got boolean")
+   assert_fail(function() utf8.width(nil) end,
+      "number/string expected, got nil")
+end
+
+-- Test utf8.widthindex
+do
+   -- Basic ASCII
+   local idx, off, w = utf8.widthindex("abcdef", 3)
+   assert(idx == 3 and off == 1 and w == 1)
+
+   -- Beyond end
+   idx, off, w = utf8.widthindex("abcdef", 10)
+   assert(idx == 7) -- Past end
+
+   -- Fullwidth characters
+   idx, off, w = utf8.widthindex("你好世界", 3)
+   assert(idx == 2 and off == 1 and w == 2) -- Start of 2nd char
+
+   -- Mid-character location
+   idx, off, w = utf8.widthindex("你好世界", 2)
+   assert(idx == 1 and off == 2 and w == 2) -- 2nd column of 1st char
+
+   -- Mixed width
+   idx, off, w = utf8.widthindex("hi你好", 5)
+   assert(idx == 4 and off == 1 and w == 2) -- Start of 2nd fullwidth char
+
+   -- Ambiguous-width characters
+   local amb_str = E "ab%x{A1}cd"                         -- "ab¡cd"
+   idx, off, w = utf8.widthindex(amb_str, 3)
+   assert(idx == 3)                                       -- At ambiguous char, default width 1
+
+   idx, off, w = utf8.widthindex(amb_str, 3, nil, nil, 2) -- Treat ambiguous as wide
+   assert(idx == 3 and off == 1 and w == 2)
+
+   -- Edge cases
+   idx, off, w = utf8.widthindex("", 1)
+   assert(idx == 1) -- Empty string
+
+   idx, off, w = utf8.widthindex("abc", 0)
+   assert(idx == 1 and off == 0) -- Location before start
+end
+
+-- test utf8.widthlimit
+do
+   -- Basic ASCII (positive limit = keep prefix)
+   local pos, remain = utf8.widthlimit("abcdef", 3)
+   assert(pos == 3 and remain == 0) -- Exactly 3 chars fit
+
+   pos, remain = utf8.widthlimit("abcdef", 10)
+   assert(pos == 6 and remain == 4) -- String ends, 4 width unused
+
+   -- Negative limit (keep suffix)
+   pos, remain = utf8.widthlimit("abcdef", -3)
+   assert(pos == 4 and remain == 0) -- Start at 'd', consume 3 width
+
+   pos, remain = utf8.widthlimit("abcdef", -10)
+   assert(pos == 1 and remain == -4) -- Entire string fits, 4 width unused (negative!)
+
+   -- Fullwidth characters
+   pos, remain = utf8.widthlimit("你好世界", 5)
+   assert(pos == 6 and remain == 1) -- 2 fullwidth chars (4 width) + 1 remain
+
+   pos, remain = utf8.widthlimit("你好世界", -5)
+   assert(pos == 7 and remain == -1) -- Last 2 chars (4 width) + 1 remain (negative!)
+
+   -- Mixed width
+   pos, remain = utf8.widthlimit("hi你好", 5)
+   assert(pos == 5 and remain == 1) -- "hi你" = 4 width, 1 remain
+
+   -- Substring range
+   pos, remain = utf8.widthlimit("abcdef", 3, 2, 5)
+   assert(pos == 4 and remain == 0) -- "bcd" in range [2,5], take 3 width
+
+   pos, remain = utf8.widthlimit("你好世界", -4, 1, 7)
+   assert(pos == 4 and remain == 0) -- "好世" = 4 width exactly
+
+   -- Ambiguous-width characters
+   local amb_str = E "%x{A1}%x{A1}ab"                     -- "¡¡ab"
+   pos, remain = utf8.widthlimit(amb_str, 3)              -- Default: ambiwidth=1
+   assert(pos == 5 and remain == 0)                       -- 2 ambiguous (2 width) + 'a' (1 width)
+
+   pos, remain = utf8.widthlimit(amb_str, 3, nil, nil, 2) -- ambiwidth=2
+   assert(pos == 2 and remain == 1)                       -- 1 ambiguous (2 width), 1 remain
+
+   -- Edge cases
+   pos, remain = utf8.widthlimit("", 5)
+   assert(pos == 0 and remain == 5) -- Empty string
+
+   pos, remain = utf8.widthlimit("abc", 0)
+   assert(pos == 0 and remain == 0) -- Zero limit
+
+   pos, remain = utf8.widthlimit("abc", 0, 2)
+   assert(pos == 1 and remain == 0) -- Zero limit in middle of string
+
+   pos, remain = utf8.widthlimit("abc你好", -1)
+   assert(pos == 10 and remain == -1) -- empty string at end, 1 width unused
+
+   pos, remain = utf8.widthlimit("abc你好", 1, 4)
+   assert(pos == 3 and remain == 1) -- Partial char at limit
+
+   -- Out of bounds tests
+   assert_fail(function() utf8.widthlimit("abc", 0, 10, 5) end, "bad argument")
+   assert_fail(function() utf8.widthlimit("abc", 0, 5, 2, 1) end, "bad argument")
+end
 
 -- test patterns
 assert_fail(function() utf8.gsub("a", ".", function() return {} end) end,
@@ -226,9 +360,9 @@ assert(utf8.find("abcabc", "ab", -10) == 1)
 
 -- test charpattern
 do
-  local subj, n = "school=школа", 0
-  for c in string.gmatch(subj, utf8.charpattern) do n = n+1 end
-  assert(n == utf8.len(subj))
+   local subj, n = "school=школа", 0
+   for c in string.gmatch(subj, utf8.charpattern) do n = n + 1 end
+   assert(n == utf8.len(subj))
 end
 
 
@@ -369,7 +503,7 @@ assert(utf8.invalidoffset('\237\160\128\237\175\191\237\191\191', -1) == 9)
 local function parse_codepoints(s)
    local list = {}
    for hex in s:gmatch("%w+") do
-      list[#list+1] = tonumber(hex, 16)
+      list[#list + 1] = tonumber(hex, 16)
    end
    return utf8.char(unpack(list))
 end
@@ -381,13 +515,14 @@ local f = io.open('NormalizationTest.txt', 'r')
 for line in f:lines() do
    if not line:match("^#") and not line:match("^@") then
       local src, nfc, nfd = line:match "([%w%s]+);([%w%s]+);([%w%s]+)"
-      table.insert(normalization_test_cases, { src = parse_codepoints(src), nfc = parse_codepoints(nfc), nfd = parse_codepoints(nfd) })
+      table.insert(normalization_test_cases,
+         { src = parse_codepoints(src), nfc = parse_codepoints(nfc), nfd = parse_codepoints(nfd) })
    end
 end
 
 
 -- test isnfc
-for _,case in ipairs(normalization_test_cases) do
+for _, case in ipairs(normalization_test_cases) do
    assert(utf8.isnfc(case.nfc))
    if case.src ~= case.nfc then
       assert(not utf8.isnfc(case.src))
@@ -412,7 +547,7 @@ assert(utf8.isnfc("\196\148\204\162\204\167"))
 assert(not utf8.isnfc("\199\154\204\164"))
 
 -- test normalize_nfc
-for _,case in ipairs(normalization_test_cases) do
+for _, case in ipairs(normalization_test_cases) do
    assert(utf8.normalize_nfc(case.src) == case.nfc)
    assert(utf8.normalize_nfc(case.nfc) == case.nfc)
    assert(utf8.normalize_nfc(case.nfd) == case.nfc)
@@ -420,7 +555,8 @@ end
 
 -- Regression tests:
 -- Long series of combining marks; these need to be sorted in canonical order
-assert(utf8.normalize_nfc("\215\129\215\133\215\133\215\129\215\129\215\129\215\129\215\129\215\129") == "\215\129\215\129\215\129\215\129\215\129\215\129\215\129\215\133\215\133")
+assert(utf8.normalize_nfc("\215\129\215\133\215\133\215\129\215\129\215\129\215\129\215\129\215\129") ==
+   "\215\129\215\129\215\129\215\129\215\129\215\129\215\129\215\133\215\133")
 -- After converting combining marks to standard codepoints, it is possible their canonicalization class may change
 -- If so, make sure they are still put in the correct order
 assert(utf8.normalize_nfc("\200\135\204\163\204\169") == "\225\186\185\204\169\204\145")
@@ -470,43 +606,43 @@ for line in f:lines() do
          elseif str == '÷' then
             table.insert(clusters, "") -- start a new cluster
          else
-            clusters[#clusters] = clusters[#clusters]..utf8.char(tonumber(str, 16))
+            clusters[#clusters] = clusters[#clusters] .. utf8.char(tonumber(str, 16))
          end
       end
-      table.insert(grapheme_test_cases, { str=table.concat(clusters), clusters=clusters })
+      table.insert(grapheme_test_cases, { str = table.concat(clusters), clusters = clusters })
    end
 end
 
 
 -- test grapheme_indices
-for _,case in ipairs(grapheme_test_cases) do
+for _, case in ipairs(grapheme_test_cases) do
    local actual_clusters = {}
-   for start,stop in utf8.grapheme_indices(case.str) do
+   for start, stop in utf8.grapheme_indices(case.str) do
       table.insert(actual_clusters, case.str:sub(start, stop))
    end
    assert(#actual_clusters == #case.clusters)
-   for i,cluster in ipairs(case.clusters) do
+   for i, cluster in ipairs(case.clusters) do
       assert(actual_clusters[i] == cluster)
    end
 end
 
 -- try iterating over grapheme clusters in a substring
 local clusters = {}
-for a,b in utf8.grapheme_indices('ひらがな', 4, 9) do
+for a, b in utf8.grapheme_indices('ひらがな', 4, 9) do
    table.insert(clusters, a)
    table.insert(clusters, b)
 end
-for idx,value in ipairs({ 4, 6, 7, 9 }) do
+for idx, value in ipairs({ 4, 6, 7, 9 }) do
    assert(clusters[idx] == value)
 end
 
 -- try private use codepoint followed by a combining character
 clusters = {}
-for a,b in utf8.grapheme_indices('\239\128\128\204\154') do
+for a, b in utf8.grapheme_indices('\239\128\128\204\154') do
    table.insert(clusters, a)
    table.insert(clusters, b)
 end
-for idx,value in ipairs({ 1, 5 }) do
+for idx, value in ipairs({ 1, 5 }) do
    assert(clusters[idx] == value)
 end
 
@@ -514,4 +650,3 @@ end
 print "OK"
 
 -- cc: run='lua -- $input'
-
