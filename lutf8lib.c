@@ -1213,7 +1213,7 @@ static int Lutf8_width (lua_State *L) {
         "initial position out of bounds");
     luaL_argcheck(L, --posj < (lua_Integer)len, 3,
         "final position out of bounds");
-    s += posi, e = s + posj + 1;
+    e = s + posj + 1, s += posi;
     while (s < e) {
       utfint ch = 0;
       s = utf8_safe_decode(L, s, &ch);
@@ -1229,19 +1229,19 @@ static int Lutf8_width (lua_State *L) {
 static int Lutf8_widthindex (lua_State *L) {
   size_t len;
   const char *e, *s = luaL_checklstring(L, 1, &len);
-  int next, width = CAST(int, luaL_checkinteger(L, 2));
+  int chwidth, width = CAST(int, luaL_checkinteger(L, 2));
   lua_Integer posi = byte_relat(luaL_optinteger(L, 3, 1), len);
   lua_Integer posj = byte_relat(luaL_optinteger(L, 4, len), len), idx;
   int default_width, ambiwidth = width_opt(L, 5, &default_width);
   check_byte_range(L, len, &posi, &posj);
-  for (idx = 1, s += posi, e = s + posj + 1; s < e; ++idx, width = next) {
+  for (idx = 0, e = s+posj+1, s += posi; s < e; ++idx, width -= chwidth) {
     utfint ch = 0;
     s = utf8_safe_decode(L, s, &ch);
-    next = width - utf8_width(ch, ambiwidth, default_width);
-    if (next <= 0) {
-      lua_pushinteger(L, idx);
+    chwidth = utf8_width(ch, ambiwidth, default_width);
+    if (width <= chwidth) {
+      lua_pushinteger(L, idx + 1);
       lua_pushinteger(L, width);
-      lua_pushinteger(L, width - next);
+      lua_pushinteger(L, chwidth);
       return 3;
     }
   }
@@ -1257,7 +1257,7 @@ static int Lutf8_widthlimit(lua_State *L) {
   int chwidth, default_width, ambiwidth = width_opt(L, 5, &default_width);
   utfint ch;
   check_byte_range(L, len, &posi, &posj);
-  s = h + posi, e = s + posj + 1;
+  s = h+posi, e = h+posj+1;
   if (width >= 0) {
     for (; s < e && width != 0; s = n, width -= chwidth) {
       n = utf8_safe_decode(L, s, &ch);

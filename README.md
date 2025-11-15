@@ -198,9 +198,7 @@ If `ambiwidth` is given, characters with ambiguous width will be treated as havi
 
 If `default` is given, it will be used as the width for unprintable characters. The default for `default` is 0.
 
-If the requested `width` does not fall on a character boundary, `offset` will be greater than 1. Specifically, if the width is in the middle (second column) of a wide character, `offset` will be 2.
-
-Returns the character index `idx`, the offset `offset` within the character, and the width of the character at that index.
+If the whole string does not fit in `width`, the `offset` and `width` will be returned. the `offset` is set to indicates the `width` is in which column in the `idx`th character in string `s`. and `width` is the current `width` of that character.
 
 **Example:**
 ```lua
@@ -208,7 +206,7 @@ local idx, offset, width = utf8.widthindex("你好world", 3)
 -- idx=2 (second character '好'), offset=1, width=2
 
 local idx, offset, width = utf8.widthindex("你好world", 4)
--- idx=2, offset=2 (middle of '好'), width=2
+-- idx=2, offset=2 (width `4` is the second column of '好'), width=2
 ```
 
 ### `utf8.widthlimit(s, limit [, i [, j [, ambiwidth [, default]]]]) --> position, remain`

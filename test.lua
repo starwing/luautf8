@@ -258,7 +258,7 @@ do
 
    -- Beyond end
    idx, off, w = utf8.widthindex("abcdef", 10)
-   assert(idx == 7) -- Past end
+   assert(idx == 6 and off == nil and w == nil) -- Past end
 
    -- Fullwidth characters
    idx, off, w = utf8.widthindex("你好世界", 3)
@@ -275,14 +275,14 @@ do
    -- Ambiguous-width characters
    local amb_str = E "ab%x{A1}cd"                         -- "ab¡cd"
    idx, off, w = utf8.widthindex(amb_str, 3)
-   assert(idx == 3)                                       -- At ambiguous char, default width 1
+   assert(idx == 3 and off == 1 and w == 1)               -- At ambiguous char, default width 1
 
    idx, off, w = utf8.widthindex(amb_str, 3, nil, nil, 2) -- Treat ambiguous as wide
    assert(idx == 3 and off == 1 and w == 2)
 
    -- Edge cases
    idx, off, w = utf8.widthindex("", 1)
-   assert(idx == 1) -- Empty string
+   assert(idx == 0 and off == nil and w == nil) -- Empty string
 
    idx, off, w = utf8.widthindex("abc", 0)
    assert(idx == 1 and off == 0) -- Location before start
