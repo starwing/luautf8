@@ -967,7 +967,7 @@ static int Lutf8_char (lua_State *L) {
   luaL_Buffer b;
   luaL_buffinit(L, &b);
   for (i = 1; i <= n; ++i) {
-    lua_Integer code = luaL_checkinteger(L, i);
+    lua_Unsigned code = (lua_Unsigned)luaL_checkinteger(L, i);
     luaL_argcheck(L, code <= UTF8_MAXCP, i, "value out of range");
     add_utf8char(&b, CAST(utfint, code));
   }
