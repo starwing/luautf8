@@ -66,6 +66,7 @@ assert_table_equal({ utf8.byte(s, 200, 100) }, {})
 
 -- test char
 assert(s == utf8.char(unpack(t)))
+assert_error(function() utf8.char(-1) end, "bad argument #1 to 'char' %(value out of range%)");
 
 -- test range
 for i = 1, #t do
