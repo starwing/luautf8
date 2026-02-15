@@ -85,8 +85,8 @@ end
 local function parse_EastAsianWidth()
     local wide, ambi = {}, {}
 
-    for line in io.lines() do
-        line = line:gsub("%s*%#.*$", "")
+    for ln in io.lines() do
+        local line = ln:gsub("%s*%#.*$", "")
         if line ~= "" then
             local first, last, mark
             first, mark = line:match "^(%x+)%s*%;%s*(%w+)$"
@@ -117,8 +117,8 @@ end
 
 local function parse_CaseFolding()
     local mapping = {}
-    for line in io.lines() do
-        line = line:gsub("%s*%#.*$", "")
+    for ln in io.lines() do
+        local line = ln:gsub("%s*%#.*$", "")
         if line ~= "" then
             local cp, class, mcp = line:match "^%s*(%x+)%s*;%s*(%w+)%s*;%s*(%x+)"
             assert(cp, line)
@@ -143,8 +143,8 @@ local function parse_PropList(f)
         f = function(cp) return arg == cp end
     end
 
-    for line in io.lines() do
-        line = line:gsub("%s*%#.*$", "")
+    for ln in io.lines() do
+        local line = ln:gsub("%s*%#.*$", "")
         if line ~= "" then
             local first, last, mark
             first, mark = line:match "^(%x+)%s*%;%s*([%w%s_;]+)%s*$"
@@ -177,8 +177,8 @@ local function parse_HangulSyllableType()
     local ranges = {}
     local lookup = {}
 
-    for line in io.lines() do
-        line = line:gsub("%s*%#.*$", "")
+    for ln in io.lines() do
+        local line = ln:gsub("%s*%#.*$", "")
         if line ~= "" then
             local first, last, mark
             first, mark = line:match "^(%x+)%s*%;%s*([%w%s_;]+)%s*$"
