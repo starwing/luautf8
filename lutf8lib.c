@@ -800,14 +800,14 @@ static int utf8_isalnum (utfint ch) {
 }
 
 static int utf8_width (utfint ch, int ambiwidth, int default_width) {
+  if (find_in_range(unprintable_table, table_size(unprintable_table), ch))
+    return default_width;
+  if (find_in_range(compose_table, table_size(compose_table), ch))
+    return default_width;
   if (find_in_range(doublewidth_table, table_size(doublewidth_table), ch))
     return 2;
   if (find_in_range(ambiwidth_table, table_size(ambiwidth_table), ch))
     return ambiwidth;
-  if (find_in_range(compose_table, table_size(compose_table), ch))
-    return default_width;
-  if (find_in_range(unprintable_table, table_size(unprintable_table), ch))
-    return default_width;
   return 1;
 }
 
