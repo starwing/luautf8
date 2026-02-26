@@ -22,7 +22,7 @@ jobs:
       ROCKSPEC: rockspecs/luautf8-scm-1.rockspec
     strategy:
       matrix:
-        luaVersion: ["5.1", "5.2", "5.3", "5.4", "luajit-openresty"]
+        luaVersion: ["5.1", "5.2", "5.3", "5.4.8", "5.5.0", "luajit-openresty"]
         os: ["ubuntu-latest"]
     steps:
       - name: Install LCov
@@ -39,6 +39,8 @@ jobs:
           luaVersion: ${{ matrix.luaVersion }}
       - name: Install Luarocks
         uses: leafo/gh-actions-luarocks@master
+        with:
+          luarocksVersion: "3.13.0"
       - name: Build
         run: |
           luarocks make $ROCKSPEC CFLAGS="-O3 -fPIC -Wall -Wextra --coverage" LIBFLAG="-shared --coverage"
@@ -51,17 +53,19 @@ jobs:
           lcov -c -d . -o coverage/lcov.info.all
           lcov -r coverage/lcov.info.all '/usr/*' -o coverage/lcov.info
       - name: Coveralls
-        uses: coverallsapp/github-action@master
+        uses: coverallsapp/github-action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           flag-name: run-${{ matrix.luaVersion }}
+          fail-on-error: false
           parallel: true
   finish:
     needs: test_ubuntu
     runs-on: ubuntu-latest
     steps:
     - name: Coveralls Finished
-      uses: coverallsapp/github-action@master
+      uses: coverallsapp/github-action@v2
       with:
         github-token: ${{ secrets.github_token }}
         parallel-finished: true
+        fail-on-error: false
