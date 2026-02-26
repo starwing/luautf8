@@ -14,7 +14,7 @@
 
 /* UTF-8 string operations */
 
-#define LUTF8_VERSION "0.2.0"
+#define LUTF8_VERSION "0.2.1"
 
 #define UTF8_BUFFSZ 8
 #define UTF8_MAX    0x7FFFFFFFu
