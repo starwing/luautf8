@@ -2065,8 +2065,8 @@ static int iterate_grapheme_indices(lua_State *L) {
     } else if (ch == '\n' || next_ch == '\r' || next_ch == '\n') {
       /* CR/LF do not bind to any other codepoint or in any other way */
       break;
-    } else if (find_in_range(cntrl_table, table_size(cntrl_table), ch) && !find_in_range(prepend_table, table_size(prepend_table), ch) && ch != 0x200D) {
-      /* Control characters do not bind to anything */
+    } else if (find_in_range(cntrl_table, table_size(cntrl_table), ch) && !find_in_range(prepend_table, table_size(prepend_table), ch) && ch != 0x200D && !find_in_range(compose_table, table_size(compose_table), ch)) {
+      /* Control characters do not bind to anything, except when they are also Grapheme_Extend */
       break;
     } else if (next_ch == 0x200D) {
       /* U+200D is ZERO WIDTH JOINER, it always binds to preceding char */
@@ -2081,8 +2081,8 @@ static int iterate_grapheme_indices(lua_State *L) {
         }
       }
       bind = 1;
-    } else if (find_in_range(cntrl_table, table_size(cntrl_table), next_ch) && !find_in_range(prepend_table, table_size(prepend_table), next_ch)) {
-      /* Control characters do not bind to anything */
+    } else if (find_in_range(cntrl_table, table_size(cntrl_table), next_ch) && !find_in_range(prepend_table, table_size(prepend_table), next_ch) && !find_in_range(compose_table, table_size(compose_table), next_ch)) {
+      /* Control characters do not bind to anything, except when they are also Grapheme_Extend */
       break;
     } else {
       if (indic_conjunct_type(ch) == INDIC_CONSONANT) {

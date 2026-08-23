@@ -5,6 +5,7 @@
 --   - UCD\DerivedNormalizationProps.txt
 --   - UCD\EastAsianWidth.txt
 --   - UCD\emoji\emoji-data.txt
+--   - UCD\auxiliary\GraphemeBreakProperty.txt
 --   - UCD\HangulSyllableType.txt
 --   - UCD\IndicSyllabicCategory.txt
 --   - UCD\PropList.txt
@@ -527,6 +528,11 @@ do
 
     io.input "UCD/emoji/emoji-data.txt"
     ranges("pictographic", "Extended_Pictographic")
+
+    io.input "UCD/auxiliary/GraphemeBreakProperty.txt"
+    ranges("cntrl", "Control")
+    io.input "UCD/auxiliary/GraphemeBreakProperty.txt"
+    ranges("spacing_mark", "SpacingMark")
 end
 
 do
@@ -577,16 +583,12 @@ do
             end
         end
     end
-    local cntrl = "Cc Cf"
     local digit = "Nd"
     local alnum_extend = "Nd Nl No"
     local punct = "Sk Sc Sm Pc Pd Ps Pe Pi Pf Po"
-    local spacing_mark = "Mc"
-    write_ranges("cntrl", get_ranges(ucd, set(cntrl)))
     write_ranges("digit", get_ranges(ucd, set(digit)))
     write_ranges("alnum_extend", get_ranges(ucd, set(alnum_extend)))
     write_ranges("punct", get_ranges(ucd, set(punct)))
-    write_ranges("spacing_mark", get_ranges(ucd, set(spacing_mark)))
     write_convtable("tolower", get_ranges(ucd, mapping "lm"))
     write_convtable("toupper", get_ranges(ucd, mapping "um"))
     write_convtable("totitle", get_ranges(ucd, mapping "tm"))

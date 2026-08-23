@@ -616,12 +616,16 @@ end
 
 
 -- test grapheme_indices
-for _, case in ipairs(grapheme_test_cases) do
+for i, case in ipairs(grapheme_test_cases) do
    local actual_clusters = {}
    for start, stop in utf8.grapheme_indices(case.str) do
       table.insert(actual_clusters, case.str:sub(start, stop))
    end
-   assert(#actual_clusters == #case.clusters)
+   if #actual_clusters ~= #case.clusters then
+      local err = ("grapheme_indices failed: case#%d: str=<%s> count=%d got=%d"):format(
+         i, case.str, #case.clusters, #actual_clusters)
+      error(err)
+   end
    for i, cluster in ipairs(case.clusters) do
       assert(actual_clusters[i] == cluster)
    end
