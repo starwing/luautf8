@@ -25,14 +25,9 @@ jobs:
         luaVersion: ["5.1", "5.2", "5.3", "5.4.8", "5.5.0", "luajit-openresty"]
         os: ["ubuntu-latest"]
     steps:
-      - name: Install LCov
-        run: |
-          sudo apt install libperlio-gzip-perl libjson-perl libcapture-tiny-perl libdatetime-perl
-          wget "https://github.com/linux-test-project/lcov/releases/download/v1.16/lcov-1.16.tar.gz"
-          tar zxf "lcov-1.16.tar.gz"
-          cd "lcov-1.16"
-          sudo make install
       - uses: actions/checkout@master
+      - name: Setup LCov
+        uses: hrishikesh-kadam/setup-lcov@v1
       - name: Install Lua ${{ matrix.luaVersion }}
         uses: leafo/gh-actions-lua@master
         with:
