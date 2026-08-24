@@ -7,7 +7,11 @@
 #ifndef utfint
 # define utfint utfint
 typedef unsigned int utfint;
-#endif
+#endif /* utfint */
+
+#ifndef UD_STATIC
+# define UD_STATIC static
+#endif /* UD_STATIC */
 
 typedef struct range_table {
     utfint first;
@@ -72,7 +76,7 @@ typedef struct type_table {
 #define INDIC_LINKER 2
 #define INDIC_EXTEND 3
 
-static struct range_table alpha_table[] = {
+UD_STATIC struct range_table alpha_table[] = {
     { 0x41, 0x5A, 1 },
     { 0x61, 0x7A, 1 },
     { 0xAA, 0xB5, 11 },
@@ -802,7 +806,7 @@ static struct range_table alpha_table[] = {
     { 0x31350, 0x33479, 1 },
 };
 
-static struct range_table lower_table[] = {
+UD_STATIC struct range_table lower_table[] = {
     { 0x61, 0x7A, 1 },
     { 0xAA, 0xB5, 11 },
     { 0xBA, 0xDF, 37 },
@@ -985,7 +989,7 @@ static struct range_table lower_table[] = {
     { 0x1E922, 0x1E943, 1 },
 };
 
-static struct range_table upper_table[] = {
+UD_STATIC struct range_table upper_table[] = {
     { 0x41, 0x5A, 1 },
     { 0xC0, 0xD6, 1 },
     { 0xD8, 0xDE, 1 },
@@ -1146,7 +1150,7 @@ static struct range_table upper_table[] = {
     { 0x1F170, 0x1F189, 1 },
 };
 
-static struct range_table xdigit_table[] = {
+UD_STATIC struct range_table xdigit_table[] = {
     { 0x30, 0x39, 1 },
     { 0x41, 0x46, 1 },
     { 0x61, 0x66, 1 },
@@ -1155,7 +1159,7 @@ static struct range_table xdigit_table[] = {
     { 0xFF41, 0xFF46, 1 },
 };
 
-static struct range_table space_table[] = {
+UD_STATIC struct range_table space_table[] = {
     { 0x9, 0xD, 1 },
     { 0x20, 0x85, 101 },
     { 0xA0, 0x1680, 5600 },
@@ -1165,7 +1169,7 @@ static struct range_table space_table[] = {
     { 0x3000, 0x3000, 1 },
 };
 
-static struct range_table unprintable_table[] = {
+UD_STATIC struct range_table unprintable_table[] = {
     { 0xAD, 0x34F, 674 },
     { 0x61C, 0x115F, 2883 },
     { 0x1160, 0x17B4, 1620 },
@@ -1183,7 +1187,7 @@ static struct range_table unprintable_table[] = {
     { 0xE0000, 0xE0FFF, 1 },
 };
 
-static struct range_table graph_table[] = {
+UD_STATIC struct range_table graph_table[] = {
     { 0x20, 0x7E, 1 },
     { 0xA0, 0xAC, 1 },
     { 0xAE, 0x2FF, 1 },
@@ -2053,7 +2057,7 @@ static struct range_table graph_table[] = {
     { 0x31350, 0x33479, 1 },
 };
 
-static struct range_table compose_table[] = {
+UD_STATIC struct range_table compose_table[] = {
     { 0x300, 0x36F, 1 },
     { 0x483, 0x489, 1 },
     { 0x591, 0x5BD, 1 },
@@ -2395,7 +2399,7 @@ static struct range_table compose_table[] = {
     { 0xE0100, 0xE01EF, 1 },
 };
 
-static struct range_table pictographic_table[] = {
+UD_STATIC struct range_table pictographic_table[] = {
     { 0xA9, 0xAE, 5 },
     { 0x203C, 0x2049, 13 },
     { 0x2122, 0x2139, 23 },
@@ -2526,7 +2530,7 @@ static struct range_table pictographic_table[] = {
     { 0x1FC00, 0x1FFFD, 1 },
 };
 
-static struct range_table cntrl_table[] = {
+UD_STATIC struct range_table cntrl_table[] = {
     { 0x0, 0x9, 1 },
     { 0xB, 0xC, 1 },
     { 0xE, 0x1F, 1 },
@@ -2546,7 +2550,7 @@ static struct range_table cntrl_table[] = {
     { 0xE01F0, 0xE0FFF, 1 },
 };
 
-static struct range_table spacing_mark_table[] = {
+UD_STATIC struct range_table spacing_mark_table[] = {
     { 0x903, 0x93B, 56 },
     { 0x93E, 0x940, 1 },
     { 0x949, 0x94C, 1 },
@@ -2680,7 +2684,7 @@ static struct range_table spacing_mark_table[] = {
     { 0x16F51, 0x16F87, 1 },
 };
 
-static struct range_table prepend_table[] = {
+UD_STATIC struct range_table prepend_table[] = {
     { 0x600, 0x605, 1 },
     { 0x6DD, 0x70F, 50 },
     { 0x890, 0x891, 1 },
@@ -2693,7 +2697,7 @@ static struct range_table prepend_table[] = {
     { 0x11D46, 0x11F02, 444 },
 };
 
-static struct type_table indic_table[] = {
+UD_STATIC struct type_table indic_table[] = {
     { 0x300, 0x36F, INDIC_EXTEND },
     { 0x483, 0x489, INDIC_EXTEND },
     { 0x591, 0x5BD, INDIC_EXTEND },
@@ -3240,7 +3244,7 @@ static struct type_table indic_table[] = {
     { 0xE0100, 0xE01EF, INDIC_EXTEND },
 };
 
-static struct range_table digit_table[] = {
+UD_STATIC struct range_table digit_table[] = {
     { 0x30, 0x39, 1 },
     { 0x660, 0x669, 1 },
     { 0x6F0, 0x6F9, 1 },
@@ -3315,7 +3319,7 @@ static struct range_table digit_table[] = {
     { 0x1FBF0, 0x1FBF9, 1 },
 };
 
-static struct range_table alnum_extend_table[] = {
+UD_STATIC struct range_table alnum_extend_table[] = {
     { 0x30, 0x39, 1 },
     { 0xB2, 0xB3, 1 },
     { 0xB9, 0xBC, 3 },
@@ -3462,7 +3466,7 @@ static struct range_table alnum_extend_table[] = {
     { 0x1FBF0, 0x1FBF9, 1 },
 };
 
-static struct range_table punct_table[] = {
+UD_STATIC struct range_table punct_table[] = {
     { 0x21, 0x2F, 1 },
     { 0x3A, 0x40, 1 },
     { 0x5B, 0x60, 1 },
@@ -3688,7 +3692,7 @@ static struct range_table punct_table[] = {
     { 0x1F8D0, 0x1F8D8, 1 },
 };
 
-static struct conv_table tolower_table[] = {
+UD_STATIC struct conv_table tolower_table[] = {
     { 0x41, 0x5A, 1, 32 },
     { 0xC0, 0xD6, 1, 32 },
     { 0xD8, 0xDE, 1, 32 },
@@ -3874,7 +3878,7 @@ static struct conv_table tolower_table[] = {
     { 0x1E900, 0x1E921, 1, 34 },
 };
 
-static struct conv_table toupper_table[] = {
+UD_STATIC struct conv_table toupper_table[] = {
     { 0x61, 0x7A, 1, -32 },
     { 0xB5, 0xB5, 1, 743 },
     { 0xE0, 0xF6, 1, -32 },
@@ -4075,7 +4079,7 @@ static struct conv_table toupper_table[] = {
     { 0x1E922, 0x1E943, 1, -34 },
 };
 
-static struct conv_table totitle_table[] = {
+UD_STATIC struct conv_table totitle_table[] = {
     { 0x61, 0x7A, 1, -32 },
     { 0xB5, 0xB5, 1, 743 },
     { 0xE0, 0xF6, 1, -32 },
@@ -4278,7 +4282,7 @@ static struct conv_table totitle_table[] = {
     { 0x1E922, 0x1E943, 1, -34 },
 };
 
-static struct conv_table tofold_table[] = {
+UD_STATIC struct conv_table tofold_table[] = {
     { 0x41, 0x5A, 1, 32 },
     { 0xB5, 0xB5, 1, 775 },
     { 0xC0, 0xD6, 1, 32 },
@@ -4487,7 +4491,7 @@ static struct conv_table tofold_table[] = {
     { 0x1E900, 0x1E921, 1, 34 },
 };
 
-static struct range_table doublewidth_table[] = {
+UD_STATIC struct range_table doublewidth_table[] = {
     { 0x1100, 0x115F, 1 },
     { 0x231A, 0x231B, 1 },
     { 0x2329, 0x232A, 1 },
@@ -4602,7 +4606,7 @@ static struct range_table doublewidth_table[] = {
     { 0x30000, 0x3FFFD, 1 },
 };
 
-static struct range_table ambiwidth_table[] = {
+UD_STATIC struct range_table ambiwidth_table[] = {
     { 0xA1, 0xA7, 3 },
     { 0xA8, 0xAA, 2 },
     { 0xAD, 0xAE, 1 },
@@ -4746,7 +4750,7 @@ static struct range_table ambiwidth_table[] = {
     { 0x100000, 0x10FFFD, 1 },
 };
 
-static struct type_table hangul_table[] = {
+UD_STATIC struct type_table hangul_table[] = {
     { 0x1100, 0x115F, HANGUL_L },
     { 0x1160, 0x11A7, HANGUL_V },
     { 0x11A8, 0x11FF, HANGUL_T },
@@ -5553,7 +5557,7 @@ static struct type_table hangul_table[] = {
     { 0xD7CB, 0xD7FB, HANGUL_T },
 };
 
-static struct canon_cls_table nfc_combining_table[] = {
+UD_STATIC struct canon_cls_table nfc_combining_table[] = {
     { 0x300, 0x314, 230 },
     { 0x315, 0x315, 232 },
     { 0x316, 0x319, 220 },
@@ -5954,7 +5958,7 @@ static struct canon_cls_table nfc_combining_table[] = {
     { 0x1E94A, 0x1E94A, 7 },
 };
 
-static struct combine_table nfc_composite_table[] = {
+UD_STATIC struct combine_table nfc_composite_table[] = {
     { 0x3524, 0x3C, 0x338, 0x226E },
     { 0x35F9, 0x3D, 0x338, 0x2260 },
     { 0x36CE, 0x3E, 0x338, 0x226F },
@@ -6918,7 +6922,7 @@ static struct combine_table nfc_composite_table[] = {
     { 0x13175C4, 0x16D69, 0x16D67, 0x16D6A },
 };
 
-static struct decompose_table nfc_decompose_table[] = {
+UD_STATIC struct decompose_table nfc_decompose_table[] = {
     { 0xC0, 0x41, 0x300, 230 },
     { 0xC1, 0x41, 0x301, 230 },
     { 0xC2, 0x41, 0x302, 230 },
@@ -7882,7 +7886,7 @@ static struct decompose_table nfc_decompose_table[] = {
     { 0x16D6A, 0x16D69, 0x16D67, 0 },
 };
 
-static struct nfc_table nfc_quickcheck_table[] = {
+UD_STATIC struct nfc_table nfc_quickcheck_table[] = {
     { 0x300, REASON_COMBINING_MARK, 0, 0 },
     { 0x301, REASON_COMBINING_MARK, 0, 0 },
     { 0x302, REASON_COMBINING_MARK, 0, 0 },

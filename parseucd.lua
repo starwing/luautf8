@@ -327,7 +327,7 @@ local function get_ucd(cp, ucd)
 end
 
 local function write_ranges(name, ranges)
-    io.write("static struct range_table "..name.."_table[] = {\n")
+    io.write("UD_STATIC struct range_table "..name.."_table[] = {\n")
     for _, r in ipairs(ranges) do
         io.write(("    { 0x%X, 0x%X, %d },\n"):format(r.first, r.last, r.step or 1))
     end
@@ -335,7 +335,7 @@ local function write_ranges(name, ranges)
 end
 
 local function write_convtable(name, conv)
-    io.write("static struct conv_table "..name.."_table[] = {\n")
+    io.write("UD_STATIC struct conv_table "..name.."_table[] = {\n")
     for _, c in ipairs(conv) do
         io.write(("    { 0x%X, 0x%X, %d, %d },\n"):format(
             c.first, c.last, c.step or 1, c.offset))
@@ -344,7 +344,7 @@ local function write_convtable(name, conv)
 end
 
 local function write_canon_cls_table(name, ucd)
-    io.write("static struct canon_cls_table "..name.."_table[] = {\n")
+    io.write("UD_STATIC struct canon_cls_table "..name.."_table[] = {\n")
     local start, prev = { canon_cls=0 }, { canon_cls=0 }
     for _, data in ipairs(ucd) do
         if data.canon_cls ~= prev.canon_cls then
@@ -379,7 +379,7 @@ local function write_combine_table(name, tbl)
         return hash(table.unpack(a.decomposition)) < hash(table.unpack(b.decomposition))
     end)
 
-    io.write("static struct combine_table "..name.."_table[] = {\n")
+    io.write("UD_STATIC struct combine_table "..name.."_table[] = {\n")
     for _, c in ipairs(tbl) do
         local cp1, cp2 = table.unpack(c.decomposition)
         io.write(("    { 0x%X, 0x%X, 0x%X, 0x%X },\n"):format(hash(cp1, cp2), cp1, cp2, c.cp))
@@ -391,7 +391,7 @@ local function write_decompose_table(name, tbl, ucd)
     table.sort(tbl, function(a,b)
         return a.cp < b.cp
     end)
-    io.write("static struct decompose_table "..name.."_table[] = {\n")
+    io.write("UD_STATIC struct decompose_table "..name.."_table[] = {\n")
     for _, c in ipairs(tbl) do
         local cp1, cp2 = table.unpack(c.decomposition)
         local data = get_ucd(cp2, ucd)
@@ -401,7 +401,7 @@ local function write_decompose_table(name, tbl, ucd)
 end
 
 local function write_type_table(name, conv)
-    io.write("static struct type_table "..name.."_table[] = {\n")
+    io.write("UD_STATIC struct type_table "..name.."_table[] = {\n")
     for _, c in ipairs(conv) do
         if c.step and c.step ~= 1 then
             local i = c.first
@@ -429,7 +429,11 @@ io.write [[
 #ifndef utfint
 # define utfint utfint
 typedef unsigned int utfint;
-#endif
+#endif /* utfint */
+
+#ifndef UD_STATIC
+# define UD_STATIC static
+#endif /* UD_STATIC */
 
 typedef struct range_table {
     utfint first;
@@ -639,7 +643,7 @@ do
     write_combine_table("nfc_composite", composite)
     write_decompose_table("nfc_decompose", composite, ucd)
 
-    io.write("static struct nfc_table nfc_quickcheck_table[] = {\n")
+    io.write("UD_STATIC struct nfc_table nfc_quickcheck_table[] = {\n")
 
     io.input "UCD/DerivedNormalizationProps.txt"
     for _, cp in ipairs(parse_NormalizationProps('NFC_QC', ucd)) do
