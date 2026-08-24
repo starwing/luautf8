@@ -1,6 +1,6 @@
 # UTF-8 module for Lua 5.x
 
-[![Build Status](https://img.shields.io/github/actions/workflow/status/starwing/luautf8/test.yml?branch=master)](https://github.com/starwing/luautf8/actions?query=branch%3Amaster)[![Coverage Status](https://img.shields.io/coveralls/github/starwing/luautf8)](https://coveralls.io/github/starwing/luautf8?branch=master)
+[![CI](https://github.com/starwing/luautf8/actions/workflows/test.yml/badge.svg?branch=master)](https://github.com/starwing/luautf8/actions/workflows/test.yml)[![Coverage Status](https://coveralls.io/repos/github/starwing/luautf8/badge.svg?branch=master)](https://coveralls.io/github/starwing/luautf8?branch=master)
 
 This module adds UTF-8 support to Lua.
 
