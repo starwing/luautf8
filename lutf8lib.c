@@ -2089,7 +2089,7 @@ static int add_value(MatchState *ms, luaL_Buffer *b, lu_Slice s, int tr) {
     }
     if (!lua_toboolean(L, -1)) { /* nil or false? */
         lua_pop(L, 1);
-        lua_pushlstring(L, s.s, s.e - s.s); /* keep original text */
+        luaL_addlstring(b, s.s, s.e - s.s); /* keep original text */
         return 0;
     } else if (!lua_isstring(L, -1))
         return luaL_error(
