@@ -3,6 +3,9 @@ UCD.*/
 ucd/
 ucd.*/
 *.dll
+*.exp
+*.lib
+*.obj
 *.o
 
 lua-utf8.so
