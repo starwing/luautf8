@@ -37,6 +37,10 @@ assert(utf8.offset("中国", 3) == 7)
 assert(utf8.offset("中国", 4) == nil)
 assert(utf8.offset("中国", -1, -3) == 1)
 assert(utf8.offset("中国", -1, 1) == nil)
+-- charpos clamps a too-far negative offset to 1
+assert(select(1, utf8.charpos("abc", -100, 1)) == 2)
+-- insert rejects an out-of-range numeric index
+assert_error(function() utf8.insert("abc", 99, "X") end, "invalid index")
 
 -- test byte
 local function assert_table_equal(t1, t2, i, j)
@@ -185,9 +189,18 @@ for i = 1, 1000 do
    assert(utf8.codepoint(E("%" .. i)) == i)
 end
 assert_fail(function() utf8.codepoint(E "%xD800") end, "invalid UTF%-8 code")
+-- negative position too far before the string goes through byte_relat's 0 path
+assert_error(function() utf8.codepoint("abc", -100) end, "out of bounds")
+-- empty interval and range/error/lax paths in codepoint
+assert(select('#', utf8.codepoint("abc", 3, 2)) == 0)
+assert_error(function() utf8.codepoint("abc", 1, 100) end, "out of bounds")
+assert_error(function() utf8.codepoint(utf8.char(0xD800), 1, 1) end, "invalid UTF%-8 code")
+assert(utf8.codepoint(utf8.char(0xD800), 1, 1, true) == 0xD800)
 
 -- test escape
 assert_fail(function() E "%{1a1}" end, "invalid escape 'a'")
+-- a bare "%x" at end of input takes parse_escape_prefix's fallback path
+assert(E("%x") == "x")
 
 
 -- test codes
@@ -470,6 +483,8 @@ for _, good in ipairs(good_strings) do
 end
 
 assert(utf8.invalidoffset("\255") == 1)
+assert(utf8.invalidoffset("\240\128\128\128") == 1)  -- overlong 4-byte
+assert(utf8.invalidoffset("\244\144\128\128") == 1)  -- > U+10FFFF
 assert(utf8.invalidoffset("\255", 0) == 1)
 assert(utf8.invalidoffset("\255", 1) == 1)
 assert(utf8.invalidoffset("\255", 2) == nil)
@@ -648,6 +663,48 @@ for a, b in utf8.grapheme_indices('\239\128\128\204\154') do
    table.insert(clusters, b)
 end
 for idx, value in ipairs({ 1, 5 }) do
+   assert(clusters[idx] == value)
+end
+
+-- ZWJ after a pictographic but followed by a non-pictographic: the
+-- grapheme_zwj probe enters its body and then falls through to G_BIND
+clusters = {}
+for a, b in utf8.grapheme_indices('\240\159\146\169\226\128\141a') do
+   table.insert(clusters, a)
+   table.insert(clusters, b)
+end
+for idx, value in ipairs({ 1, 7, 8, 8 }) do
+   assert(clusters[idx] == value)
+end
+
+-- pictographic + skin-tone modifier exercises grapheme_extend_scan
+clusters = {}
+for a, b in utf8.grapheme_indices('\240\159\146\169\240\159\143\187') do
+   table.insert(clusters, a)
+   table.insert(clusters, b)
+end
+for idx, value in ipairs({ 1, 8 }) do
+   assert(clusters[idx] == value)
+end
+
+-- pictographic + modifier + ZWJ + non-pictographic: grapheme_extend_scan
+-- sees a ZWJ whose following codepoint is not pictographic
+clusters = {}
+for a, b in utf8.grapheme_indices('\240\159\146\169\240\159\143\187\226\128\141a') do
+   table.insert(clusters, a)
+   table.insert(clusters, b)
+end
+for idx, value in ipairs({ 1, 11, 12, 12 }) do
+   assert(clusters[idx] == value)
+end
+
+-- regional indicator pair stays in one cluster
+clusters = {}
+for a, b in utf8.grapheme_indices('\240\159\135\169\240\159\135\170') do
+   table.insert(clusters, a)
+   table.insert(clusters, b)
+end
+for idx, value in ipairs({ 1, 8 }) do
    assert(clusters[idx] == value)
 end
 

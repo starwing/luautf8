@@ -1,5 +1,10 @@
 local utf8 = require 'lua-utf8'
 
+local function assert_error(f, msg)
+   local ok, e = pcall(f)
+   assert(not ok and e:match(msg))
+end
+
 print('testing pattern matching')
 
 function f(s, p)
@@ -73,6 +78,12 @@ assert(f('aaab', 'a-') == '')
 assert(f('aaa', '^.-$') == 'aaa')
 assert(f('aabaaabaaabaaaba', 'b.*b') == 'baaabaaabaaab')
 assert(f('aabaaabaaabaaaba', 'b.-b') == 'baaab')
+-- min_expand returns NULL when the minimal repetition cannot match at all
+assert(utf8.find('abbd', 'b-c') == nil)
+assert(utf8.match('abcABC', '%u+') == 'ABC')
+-- error paths in pattern matching
+assert_error(function() utf8.match("abc", "a)") end, "invalid pattern capture")
+assert_error(function() utf8.match("", string.rep("()", 33)) end, "too many captures")
 assert(f('alo xo', '.o$') == 'xo')
 assert(f(' \n isto é assim', '%S%S*') == 'isto')
 assert(f(' \n isto é assim', '%S*$') == 'assim')

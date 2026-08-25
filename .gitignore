@@ -16,5 +16,7 @@ luautf8-*.rock
 *.gcov
 *.gcda
 *.gcno
+coverage.info
+lutf8lib.info
 
 test_*.lua

@@ -33,12 +33,12 @@ local function parse_UnicodeData()
     -- 14. titlecase mapping
     local ucd = {}
 
-    local patt = "^(%x+)"..(";([^;]-)"):rep(14).."$"
+    local patt = "^(%x+)" .. (";([^;]-)"):rep(14) .. "$"
 
     local last_data
 
     for line in io.lines() do
-        local cp, name, gc, canon_cls, bidi_class, decomposition, _,_,_, _, _,_, um, lm, tm = line:match(patt)
+        local cp, name, gc, canon_cls, bidi_class, decomposition, _, _, _, _, _, _, um, lm, tm = line:match(patt)
         assert(cp, line)
         cp = tonumber(cp, 16)
         lm = lm ~= "" and tonumber(lm, 16)
@@ -52,15 +52,17 @@ local function parse_UnicodeData()
         else
             decomposition = nil
         end
-        if last_data and last_data.name:match"First%>$" then
-            assert(name:match"Last%>$", line)
-            for i = last_data.cp, cp-1 do
-                ucd[#ucd+1] = {
+        if last_data and last_data.name:match "First%>$" then
+            assert(name:match "Last%>$", line)
+            for i = last_data.cp, cp - 1 do
+                ucd[#ucd + 1] = {
                     cp = i,
                     name = name,
                     gc = gc,
                     bidi_class = bidi_class,
-                    lm = lm, um = um, tm = tm,
+                    lm = lm,
+                    um = um,
+                    tm = tm,
                     canon_cls = tonumber(canon_cls),
                     decomposition = decomposition
                 }
@@ -71,11 +73,13 @@ local function parse_UnicodeData()
             name = name,
             gc = gc,
             bidi_class = bidi_class,
-            lm = lm, um = um, tm = tm,
+            lm = lm,
+            um = um,
+            tm = tm,
             canon_cls = tonumber(canon_cls),
             decomposition = decomposition
         }
-        ucd[#ucd+1] = data
+        ucd[#ucd + 1] = data
         last_data = data
     end
     table.sort(ucd, function(a, b) return a.cp < b.cp end)
@@ -103,11 +107,11 @@ local function parse_EastAsianWidth()
 
             if mark == 'W' or mark == 'F' then
                 for i = first, last do
-                    wide[#wide+1] = i
+                    wide[#wide + 1] = i
                 end
             elseif mark == 'A' then
                 for i = first, last do
-                    ambi[#ambi+1] = i
+                    ambi[#ambi + 1] = i
                 end
             end
         end
@@ -126,7 +130,7 @@ local function parse_CaseFolding()
             if class == 'C' or class == 'S' then
                 cp = tonumber(cp, 16)
                 mcp = tonumber(mcp, 16)
-                mapping[#mapping+1] = { cp = cp, mapping = mcp }
+                mapping[#mapping + 1] = { cp = cp, mapping = mcp }
             end
         end
     end
@@ -163,7 +167,7 @@ local function parse_PropList(f)
                 for i = first, last do
                     if not lookup[i] then
                         lookup[i] = true
-                        ranges[#ranges+1] = i
+                        ranges[#ranges + 1] = i
                     end
                 end
             end
@@ -196,7 +200,7 @@ local function parse_HangulSyllableType()
             for i = first, last do
                 if not lookup[i] then
                     lookup[i] = true
-                    ranges[#ranges+1] = { cp=i, offset='HANGUL_'..mark }
+                    ranges[#ranges + 1] = { cp = i, offset = 'HANGUL_' .. mark }
                 end
             end
         end
@@ -221,7 +225,7 @@ local function parse_NormalizationProps(prop, ucd)
             to = tonumber(to, 16)
 
             for cp = from, to, 1 do
-                codepoints[#codepoints+1] = cp
+                codepoints[#codepoints + 1] = cp
             end
         end
     end
@@ -244,14 +248,14 @@ local function get_ranges(list, func)
         end
         if res then
             if first and
-                    (not offset or offset == v_offset) and
-                    (not step or step == v_cp - last) then
+                (not offset or offset == v_offset) and
+                (not step or step == v_cp - last) then
                 step = v_cp - last
                 last = v_cp
             else
                 if first then
                     local r = { first = first, last = last, step = step, offset = offset }
-                    ranges[#ranges+1] = r
+                    ranges[#ranges + 1] = r
                 end
                 first, last, step = v_cp, v_cp, nil
                 offset = v_offset
@@ -260,7 +264,7 @@ local function get_ranges(list, func)
     end
     if first then
         local r = { first = first, last = last, step = step, offset = offset }
-        ranges[#ranges+1] = r
+        ranges[#ranges + 1] = r
     end
     return ranges
 end
@@ -315,7 +319,7 @@ end
 --]]
 
 local function get_ucd(cp, ucd)
-    local data = ucd[cp+1]
+    local data = ucd[cp + 1]
     if data.cp > cp then
         local i = cp
         while data.cp > cp do
@@ -327,7 +331,7 @@ local function get_ucd(cp, ucd)
 end
 
 local function write_ranges(name, ranges)
-    io.write("UD_STATIC struct range_table "..name.."_table[] = {\n")
+    io.write("UD_STATIC struct range_table " .. name .. "_table[] = {\n")
     for _, r in ipairs(ranges) do
         io.write(("    { 0x%X, 0x%X, %d },\n"):format(r.first, r.last, r.step or 1))
     end
@@ -335,7 +339,7 @@ local function write_ranges(name, ranges)
 end
 
 local function write_convtable(name, conv)
-    io.write("UD_STATIC struct conv_table "..name.."_table[] = {\n")
+    io.write("UD_STATIC struct conv_table " .. name .. "_table[] = {\n")
     for _, c in ipairs(conv) do
         io.write(("    { 0x%X, 0x%X, %d, %d },\n"):format(
             c.first, c.last, c.step or 1, c.offset))
@@ -344,8 +348,8 @@ local function write_convtable(name, conv)
 end
 
 local function write_canon_cls_table(name, ucd)
-    io.write("UD_STATIC struct canon_cls_table "..name.."_table[] = {\n")
-    local start, prev = { canon_cls=0 }, { canon_cls=0 }
+    io.write("UD_STATIC struct canon_cls_table " .. name .. "_table[] = {\n")
+    local start, prev = { canon_cls = 0 }, { canon_cls = 0 }
     for _, data in ipairs(ucd) do
         if data.canon_cls ~= prev.canon_cls then
             if prev.canon_cls ~= 0 then
@@ -371,15 +375,16 @@ local function write_combine_table(name, tbl)
         if dup[hash(cp1, cp2)] then
             local conflicting = dup[hash(cp1, cp2)]
             local cp3, cp4 = table.unpack(conflicting.decomposition)
-            error("Hash collision: "..string.format("%x %x -> %x, %x %x -> %x", cp3, cp4, hash(cp3, cp4), cp1, cp2, hash(cp1, cp2)))
+            error("Hash collision: " ..
+            string.format("%x %x -> %x, %x %x -> %x", cp3, cp4, hash(cp3, cp4), cp1, cp2, hash(cp1, cp2)))
         end
         dup[hash(cp1, cp2)] = c
     end
-    table.sort(tbl, function(a,b)
+    table.sort(tbl, function(a, b)
         return hash(table.unpack(a.decomposition)) < hash(table.unpack(b.decomposition))
     end)
 
-    io.write("UD_STATIC struct combine_table "..name.."_table[] = {\n")
+    io.write("UD_STATIC struct combine_table " .. name .. "_table[] = {\n")
     for _, c in ipairs(tbl) do
         local cp1, cp2 = table.unpack(c.decomposition)
         io.write(("    { 0x%X, 0x%X, 0x%X, 0x%X },\n"):format(hash(cp1, cp2), cp1, cp2, c.cp))
@@ -388,10 +393,10 @@ local function write_combine_table(name, tbl)
 end
 
 local function write_decompose_table(name, tbl, ucd)
-    table.sort(tbl, function(a,b)
+    table.sort(tbl, function(a, b)
         return a.cp < b.cp
     end)
-    io.write("UD_STATIC struct decompose_table "..name.."_table[] = {\n")
+    io.write("UD_STATIC struct decompose_table " .. name .. "_table[] = {\n")
     for _, c in ipairs(tbl) do
         local cp1, cp2 = table.unpack(c.decomposition)
         local data = get_ucd(cp2, ucd)
@@ -401,7 +406,7 @@ local function write_decompose_table(name, tbl, ucd)
 end
 
 local function write_type_table(name, conv)
-    io.write("UD_STATIC struct type_table "..name.."_table[] = {\n")
+    io.write("UD_STATIC struct type_table " .. name .. "_table[] = {\n")
     for _, c in ipairs(conv) do
         if c.step and c.step ~= 1 then
             local i = c.first
@@ -455,12 +460,15 @@ typedef struct nfc_table {
     unsigned int data2;
 } nfc_table;
 
-#define REASON_MUST_CONVERT_1 1
-#define REASON_MUST_CONVERT_2 2
-#define REASON_STARTER_CAN_COMBINE 3
-#define REASON_COMBINING_MARK 4
-#define REASON_JAMO_VOWEL 5
-#define REASON_JAMO_TRAILING 6
+typedef enum ud_Reason {
+    REASON_MUST_CONVERT_1,
+    REASON_MUST_CONVERT_2,
+    REASON_STARTER_CAN_COMBINE,
+    REASON_COMBINING_MARK,
+    REASON_JAMO_VOWEL,
+    REASON_JAMO_TRAILING,
+    REASON_MAX
+} ud_Reason;
 
 typedef struct canon_cls_table {
     utfint first;
@@ -543,8 +551,8 @@ do
     io.input "UCD/PropList.txt"
     local prepend = parse_PropList("Prepended_Concatenation_Mark")
     io.input "UCD/IndicSyllabicCategory.txt"
-    local indic = parse_PropList({ Consonant_Preceding_Repha=true, Consonant_Prefixed=true })
-    for _,cp in ipairs(indic) do
+    local indic = parse_PropList({ Consonant_Preceding_Repha = true, Consonant_Prefixed = true })
+    for _, cp in ipairs(indic) do
         table.insert(prepend, cp)
     end
     table.sort(prepend)
@@ -559,15 +567,15 @@ do
     io.input "UCD/DerivedCoreProperties.txt"
     local extend = parse_PropList("InCB; Extend")
     local indic_type = {}
-    for _,cp in ipairs(consonant) do table.insert(indic_type, { cp=cp, offset='INDIC_CONSONANT' }) end
-    for _,cp in ipairs(linker) do table.insert(indic_type, { cp=cp, offset='INDIC_LINKER' }) end
-    for _,cp in ipairs(extend) do table.insert(indic_type, { cp=cp, offset='INDIC_EXTEND' }) end
+    for _, cp in ipairs(consonant) do table.insert(indic_type, { cp = cp, offset = 'INDIC_CONSONANT' }) end
+    for _, cp in ipairs(linker) do table.insert(indic_type, { cp = cp, offset = 'INDIC_LINKER' }) end
+    for _, cp in ipairs(extend) do table.insert(indic_type, { cp = cp, offset = 'INDIC_EXTEND' }) end
     table.sort(indic_type, function(a, b) return a.cp < b.cp end)
     write_type_table("indic", get_ranges(indic_type))
 end
 
 do
-    io.input  "UCD/UnicodeData.txt"
+    io.input "UCD/UnicodeData.txt"
     local ucd = parse_UnicodeData()
     local function set(s)
         local hasht = {}
@@ -608,7 +616,7 @@ do
 end
 
 do
-    io.input  "UCD/EastAsianWidth.txt"
+    io.input "UCD/EastAsianWidth.txt"
     local wide, ambi = parse_EastAsianWidth()
     write_ranges("doublewidth", get_ranges(wide))
     write_ranges("ambiwidth", get_ranges(ambi))
@@ -620,7 +628,7 @@ do
 end
 
 do
-    io.input  "UCD/UnicodeData.txt"
+    io.input "UCD/UnicodeData.txt"
     local ucd = parse_UnicodeData()
 
     -- Write out table of all combining marks
@@ -652,7 +660,8 @@ do
         if decomp then
             if #decomp == 1 then
                 local decomp_data = get_ucd(decomp[1], ucd)
-                io.write(("    { 0x%X, REASON_MUST_CONVERT_1, 0x%X, %d },\n"):format(data.cp, decomp[1], decomp_data.canon_cls))
+                io.write(("    { 0x%X, REASON_MUST_CONVERT_1, 0x%X, %d },\n"):format(data.cp, decomp[1],
+                    decomp_data.canon_cls))
             else
                 io.write(("    { 0x%X, REASON_MUST_CONVERT_2, 0x%X, 0x%X },\n"):format(data.cp, decomp[1], decomp[2]))
             end
@@ -665,7 +674,8 @@ do
         elseif data.cp >= 0x11A8 and data.cp <= 0x11C2 then
             io.write(("    { 0x%X, REASON_JAMO_TRAILING, 0, 0 },\n"):format(data.cp))
         else
-            error("Don't know why we need to check for codepoint "..string.format("0x%x", data.cp).." when doing NFC normalization")
+            error("Don't know why we need to check for codepoint " ..
+            string.format("0x%x", data.cp) .. " when doing NFC normalization")
         end
     end
 

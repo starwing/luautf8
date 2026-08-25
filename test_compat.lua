@@ -65,6 +65,12 @@ print('+')
 
 assert(utf8.upper("ab\0c") == "AB\0C")
 assert(utf8.lower("\0ABCc%$") == "\0abcc%$")
+-- U+0101 is inside a step-2 lower mapping range but not on a mapped step
+assert(utf8.lower("\196\129") == "\196\129")
+assert(utf8.title("hello") == "HELLO")
+assert(utf8.title(97) == 65)
+assert(utf8.fold("HeLLo") == "hello")
+assert(utf8.fold(65) == 97)
 
 assert(utf8.reverse"" == "")
 assert(utf8.reverse"\0\1\2\3" == "\3\2\1\0")

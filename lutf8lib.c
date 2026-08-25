@@ -367,6 +367,7 @@ static int nfc_check_jamo_trailing(
 static int nfc_check(
         utfint ch, nfc_table *entry, utfint starter, unsigned int canon_cls,
         unsigned int prev_canon_cls) {
+    assert(entry->reason >= 0 && entry->reason < REASON_MAX);
     switch (entry->reason) {
     case REASON_MUST_CONVERT_1:
     case REASON_MUST_CONVERT_2: return 0;
@@ -787,10 +788,7 @@ static void nfc_run(NfcCtx *ctx) {
     int r;
     while (ctx->s < ctx->e) {
         const char *new_s = utf8_decode(ctx->s, &ctx->ch, 1);
-        if (new_s == NULL) {
-            nfc_ctx_free(ctx);
-            luaL_error(ctx->L, "string is not valid UTF-8");
-        }
+        assert(new_s != NULL);
         ctx->canon_cls = lookup_canon_cls(ctx->ch);
         if (!ctx->canon_cls) {
             r = nfc_handle_starter(ctx, new_s);
@@ -1684,6 +1682,7 @@ static const char *match_capture(MatchState *ms, const char *s, int l) {
 static int match_basic(
         MatchState *ms, const char *s, const char *p, utfint ch,
         const char **ps) {
+    assert(ch == '(' || ch == ')' || ch == '$');
     switch (ch) {
     case '(':
         if (*(p + 1) == ')') /* position capture? */
@@ -1695,9 +1694,8 @@ static int match_basic(
     case '$':
         if ((p + 1) != ms->p_end) return M_DFLT;
         *ps = (s == ms->src_end) ? s : NULL;
-        return M_OK;
+    default: return M_OK;
     }
-    return M_FAIL;
 }
 
 static int match_escaped_balance(
