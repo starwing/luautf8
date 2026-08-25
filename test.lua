@@ -145,6 +145,31 @@ assert(utf8.ncasecmp("abZdef", "abcZef") == 1)
 
 assert(utf8.gsub("x^[]+$", "%p", "%%%0") == "x%^%[%]%+%$")
 
+-- Lua 5.5 empty-match handling (lastmatch)
+do
+   local function collect_gmatch(s, p)
+      local r = {}
+      for w in utf8.gmatch(s, p) do r[#r + 1] = w end
+      return r
+   end
+   local function assert_gmatch(s, p, expected)
+      local got = collect_gmatch(s, p)
+      assert(#got == #expected, "gmatch count")
+      for i = 1, #expected do
+         assert(got[i] == expected[i], "gmatch item " .. i)
+      end
+   end
+   assert_gmatch("abc", "b?", { "", "b", "" })
+   assert_gmatch("abc", "a*", { "a", "", "" })
+   assert_gmatch("abc", ".*", { "abc" })
+   local r, n = utf8.gsub("abc", "b?", "x")
+   assert(r == "xaxcx" and n == 3)
+   r, n = utf8.gsub("abc", "a*", "x")
+   assert(r == "xbxcx" and n == 3)
+   r, n = utf8.gsub("abc", ".*", "x")
+   assert(r == "x" and n == 1)
+end
+
 
 -- test invalid
 
