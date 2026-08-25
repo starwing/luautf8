@@ -1465,12 +1465,14 @@ static int Lutf8_ncasecmp(lua_State *L) {
 typedef struct MatchState {
     int matchdepth; /* control for recursive depth (to avoid C stack overflow)
                      */
-    const char  *src_init; /* init of source string */
-    const char  *src_end;  /* end ('\0') of source string */
-    const char  *p;        /* current pattern start */
-    const char  *p_end;    /* end ('\0') of pattern */
-    int          tr;       /* replacement type for gsub */
-    lua_Integer *pn;       /* substitution counter for gsub */
+    const char  *src_init;  /* init of source string */
+    const char  *src_end;   /* end ('\0') of source string */
+    const char  *p;         /* current pattern start */
+    const char  *p_end;     /* end ('\0') of pattern */
+    int          tr;        /* replacement type for gsub */
+    lua_Integer *pn;        /* substitution counter for gsub */
+    const char  *lastmatch; /* end of last match in gsub */
+    int          changed;   /* whether gsub changed the string */
     lua_State   *L;
     int          level; /* total number of captures (finished or unfinished) */
     struct {
@@ -2007,26 +2009,27 @@ static int gmatch_aux(lua_State *L) {
     lu_Slice    sl = check_utf8(L, lua_upvalueindex(1));
     lu_Slice    pl = check_utf8(L, lua_upvalueindex(2));
     const char *s = sl.s, *es = sl.e, *p = pl.s, *ep = pl.e;
+    lua_Integer pos = lua_tointeger(L, lua_upvalueindex(3));
+    lua_Integer last = lua_tointeger(L, lua_upvalueindex(4));
     const char *src;
     ms.L = L;
     ms.matchdepth = MAXCCALLS;
     ms.src_init = s;
     ms.src_end = es;
     ms.p_end = ep;
-    for (src = s + (size_t)lua_tointeger(L, lua_upvalueindex(3));
-         src <= ms.src_end; src = utf8_next(src, ms.src_end)) {
+    for (src = s + pos; src <= es;) {
         const char *e;
         ms.level = 0;
         assert(ms.matchdepth == MAXCCALLS);
-        if ((e = match(&ms, src, p)) != NULL) {
-            lua_Integer newstart = e - s;
-            if (e == src)
-                newstart++; /* empty match? go at least one position */
-            lua_pushinteger(L, newstart);
+        if ((e = match(&ms, src, p)) != NULL && e - s != last) {
+            lua_pushinteger(L, e - s);
             lua_replace(L, lua_upvalueindex(3));
+            lua_pushinteger(L, e - s);
+            lua_replace(L, lua_upvalueindex(4));
             return push_captures(&ms, lu_newslice(src, e - src));
         }
-        if (src == ms.src_end) break;
+        if (src == es) break;
+        src = utf8_next(src, es);
     }
     return 0; /* not found */
 }
@@ -2035,8 +2038,9 @@ static int Lutf8_gmatch(lua_State *L) {
     luaL_checkstring(L, 1);
     luaL_checkstring(L, 2);
     lua_settop(L, 2);
-    lua_pushinteger(L, 0);
-    lua_pushcclosure(L, gmatch_aux, 3);
+    lua_pushinteger(L, 0);  /* current position */
+    lua_pushinteger(L, -1); /* last match end */
+    lua_pushcclosure(L, gmatch_aux, 4);
     return 1;
 }
 
@@ -2068,7 +2072,7 @@ static void add_s(MatchState *ms, luaL_Buffer *b, lu_Slice s) {
     }
 }
 
-static void add_value(MatchState *ms, luaL_Buffer *b, lu_Slice s, int tr) {
+static int add_value(MatchState *ms, luaL_Buffer *b, lu_Slice s, int tr) {
     lua_State *L = ms->L;
     int        n;
     switch (tr) {
@@ -2081,14 +2085,17 @@ static void add_value(MatchState *ms, luaL_Buffer *b, lu_Slice s, int tr) {
         push_onecapture(ms, 0, s);
         lua_gettable(L, 3);
         break;
-    default: /* LUA_TNUMBER or LUA_TSTRING */ add_s(ms, b, s); return;
+    default: /* LUA_TNUMBER or LUA_TSTRING */ add_s(ms, b, s); return 1;
     }
     if (!lua_toboolean(L, -1)) { /* nil or false? */
         lua_pop(L, 1);
         lua_pushlstring(L, s.s, s.e - s.s); /* keep original text */
+        return 0;
     } else if (!lua_isstring(L, -1))
-        luaL_error(L, "invalid replacement value (a %s)", luaL_typename(L, -1));
+        return luaL_error(
+                L, "invalid replacement value (a %s)", luaL_typename(L, -1));
     luaL_addvalue(b); /* add result to accumulator */
+    return 1;
 }
 
 /* Try one gsub step; returns 0 when the end of string is reached. */
@@ -2101,13 +2108,13 @@ static int gsub_one_match(MatchState *ms, luaL_Buffer *b, lu_Slice *src) {
     ms->level = 0;
     assert(ms->matchdepth == MAXCCALLS);
     e = match(ms, s, p);
-    if (e) {
+    if (e && e != ms->lastmatch) {
         (*pn)++;
-        add_value(ms, b, lu_newslice(s, e - s), tr);
-    }
-    if (e && e > s) /* non empty match? */
-        src->s = e; /* skip it */
-    else if (s < es) {
+        ms->changed = add_value(ms, b, lu_newslice(s, e - s), tr)
+                   || ms->changed;
+        src->s = e;
+        ms->lastmatch = e;
+    } else if (s < es) {
         s = utf8_safe_decode(ms->L, s, &ch);
         add_utf8char(b, ch);
         src->s = s;
@@ -2142,12 +2149,18 @@ static int Lutf8_gsub(lua_State *L) {
     ms.p_end = ep;
     ms.tr = tr;
     ms.pn = &n;
+    ms.lastmatch = NULL;
+    ms.changed = 0;
     while (n < max_s) {
         if (!gsub_one_match(&ms, &b, &sl)) break;
         if (anchor) break;
     }
-    luaL_addlstring(&b, sl.s, es - sl.s);
-    luaL_pushresult(&b);
+    if (!ms.changed)
+        lua_pushvalue(L, 1); /* return original string */
+    else {
+        luaL_addlstring(&b, sl.s, es - sl.s);
+        luaL_pushresult(&b);
+    }
     lua_pushinteger(L, n); /* number of substitutions */
     return 2;
 }
