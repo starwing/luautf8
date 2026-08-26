@@ -406,7 +406,7 @@ static void luN_stablesort(uint32_t *vector, uint32_t *scratch, size_t size) {
 /* Shuffle item `i` up or down to get it into the right position */
 static void luN_stableinsert(uint32_t *v, size_t size, size_t i) {
     uint32_t item = v[i];
-    int      cc = item & 0xFF;
+    uint32_t cc = item & 0xFF;
     if (i > 0) {
         if (cc < (v[i - 1] & 0xFF)) {
             do {
@@ -540,8 +540,8 @@ static int luN_fixdecomp(lu_NFC *ctx, size_t i, int markcc, utfint mark) {
 
 /* Try to combine/fix one combining mark; returns continue flag. */
 static int luN_fix(lu_NFC *ctx, size_t i) {
-    int    markcc = ctx->vector[i] & 0xFF;
-    utfint mark = ctx->vector[i] >> 8;
+    uint32_t markcc = ctx->vector[i] & 0xFF;
+    utfint   mark = ctx->vector[i] >> 8;
     if (i != 0 && markcc <= (ctx->vector[i - 1] & 0xFF)) return 0;
     if (luN_combine(ctx->starter, mark, &ctx->starter)) {
         ctx->vec_size--;
@@ -812,10 +812,10 @@ lu_categories(X)
         return luT_convert(                                          \
                 to##name##_table, lu_tabsize(to##name##_table), ch); \
     }
-lu_converters(X)
+        lu_converters(X)
 #undef X
 
-static int luT_isgraph(utfint ch) {
+                static int luT_isgraph(utfint ch) {
     if (luT_find(space_table, lu_tabsize(space_table), ch)) return 0;
     if (luT_find(graph_table, lu_tabsize(graph_table), ch)) return 1;
     if (luT_find(compose_table, lu_tabsize(compose_table), ch)) return 1;
@@ -1033,9 +1033,10 @@ static int Lutf8_char(lua_State *L) {
 lu_converters(X)
 #undef X
 
-/* unicode extra interface */
+        /* unicode extra interface */
 
-static void luE_parse(lua_State *L, lu_Slice *sl, int hex, utfint *pch) {
+        static void luE_parse(
+                lua_State *L, lu_Slice *sl, int hex, utfint *pch) {
     const char *s = sl->s, *e = sl->e;
     utfint      code = 0;
     int         in_bracket = 0, closed = 0, digits = 0;
@@ -1467,9 +1468,11 @@ static int luM_class(utfint c, utfint cl) {
     switch (lu_tolower(cl)) {
 #define X(cls, name) \
     case cls: res = luT_is##name(c); break;
-        lu_categories(X)
+    lu_categories(X)
 #undef X
-    case 'g': res = luT_isgraph(c); break;
+            case 'g':
+        res = luT_isgraph(c);
+        break;
     case 'w': res = luT_isalnum(c); break;
     case 'z': res = (c == 0); break; /* deprecated option */
     default: return (cl == c);
