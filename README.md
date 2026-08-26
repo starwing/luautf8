@@ -100,6 +100,9 @@ Escapes string `s` to UTF-8 format. Supports several escape formats:
 
 Returns the escaped UTF-8 string.
 
+Malformed escapes raise an error, including a trailing `%`, a missing closing
+`}` for `%{...}`, or a missing digit after `%x`, `%u`, or `%{`.
+
 **Example:**
 ```lua
 local u = utf8.escape

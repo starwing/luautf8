@@ -200,6 +200,11 @@ assert(utf8.codepoint(utf8.char(0xD800), 1, 1, true) == 0xD800)
 
 -- test escape
 assert_fail(function() E "%{1a1}" end, "invalid escape 'a'")
+assert_error(function() E "%" end, "unfinished escape")
+assert_error(function() E "%xG" end, "invalid escape 'G'")
+assert_error(function() E "%uA" end, "invalid escape 'A'")
+assert_error(function() E "%{123" end, "unfinished escape")
+assert_error(function() E "%x{}" end, "invalid escape: expected digit")
 -- a bare "%x" at end of input takes parse_escape_prefix's fallback path
 assert(E("%x") == "x")
 

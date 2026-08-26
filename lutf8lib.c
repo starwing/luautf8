@@ -1038,7 +1038,7 @@ lu_converters(X)
 static void luE_parse(lua_State *L, lu_Slice *sl, int hex, utfint *pch) {
     const char *s = sl->s, *e = sl->e;
     utfint      code = 0;
-    int         in_bracket = 0;
+    int         in_bracket = 0, closed = 0, digits = 0;
     if (*s == '{') ++s, in_bracket = 1;
     for (; s < e; ++s) {
         utfint ch = (unsigned char)*s;
@@ -1048,16 +1048,21 @@ static void luE_parse(lua_State *L, lu_Slice *sl, int hex, utfint *pch) {
             ch = 10 + (ch - 'A');
         else if (hex && ch >= 'a' && ch <= 'f')
             ch = 10 + (ch - 'a');
-        else if (!in_bracket)
-            break;
-        else if (ch == '}') {
+        else if (in_bracket && ch == '}') {
             ++s;
+            closed = 1;
+            break;
+        } else if (!in_bracket) {
+            if (digits == 0) luaL_error(L, "invalid escape '%c'", ch);
             break;
         } else
             luaL_error(L, "invalid escape '%c'", ch);
         code *= hex ? 16 : 10;
         code += ch;
+        digits++;
     }
+    if (in_bracket && !closed) luaL_error(L, "unfinished escape");
+    if (!digits) luaL_error(L, "invalid escape: expected digit");
     *pch = code;
     sl->s = s;
 }
@@ -1065,6 +1070,7 @@ static void luE_parse(lua_State *L, lu_Slice *sl, int hex, utfint *pch) {
 static int luE_prefix(lua_State *L, lu_Slice *sl, utfint *ch) {
     const char *s = sl->s, *e = sl->e;
     int         hex = 0;
+    if (s >= e) luaL_error(L, "unfinished escape");
     switch (*s) {
         /* clang-format off */
     case '0': case '1': case '2': case '3':
