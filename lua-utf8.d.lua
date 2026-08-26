@@ -22,19 +22,21 @@ utf8.charpattern = "[\0-\x7F\xC2-\xF4][\x80-\xBF]*"
 function utf8.offset(s, n, i) end
 
 --- Returns the code points of the substring starting at position i and ending
---- at j (both inclusive, default 1 and #s).
+--- at j (both inclusive, default 1 and #s). When lax is true, invalid code
+--- points such as surrogates are returned instead of raising an error.
 --- @param s string
 --- @param i? integer
 --- @param j? integer
+--- @param lax? boolean
 --- @return integer ...
-function utf8.codepoint(s, i, j) end
+function utf8.codepoint(s, i, j, lax) end
 
---- Returns an iterator over the UTF-8 characters of s.
+--- Returns an iterator over the UTF-8 characters of s. When lax is true,
+--- invalid sequences are skipped instead of raising an error.
 --- @param s string
---- @param i? integer
---- @param j? integer
+--- @param lax? boolean
 --- @return fun(): integer, integer
-function utf8.codes(s, i, j) end
+function utf8.codes(s, lax) end
 
 -- ==================== string module compatibility ====================
 
@@ -76,13 +78,15 @@ function utf8.gmatch(s, pattern) end
 function utf8.gsub(s, pattern, repl, n) end
 
 --- Returns the number of UTF-8 characters in s, or nil plus an error message
---- if s is not a valid UTF-8 string.
+--- if s is not a valid UTF-8 string. When lax is true, invalid sequences are
+--- counted leniently instead of failing.
 --- @param s string
 --- @param i? integer
 --- @param j? integer
+--- @param lax? boolean
 --- @return integer? len
 --- @return string? err
-function utf8.len(s, i, j) end
+function utf8.len(s, i, j, lax) end
 
 --- Converts s to lowercase. With an integer argument, converts a code point.
 --- @overload fun(s: string): string
@@ -98,10 +102,12 @@ function utf8.lower(s) end
 --- @return string ...
 function utf8.match(s, pattern, init) end
 
---- Returns the reverse of s. Reverses by character, not by byte.
+--- Returns the reverse of s. Reverses by character, not by byte. When lax is
+--- true, invalid sequences are reversed leniently without raising an error.
 --- @param s string
+--- @param lax? boolean
 --- @return string
-function utf8.reverse(s) end
+function utf8.reverse(s, lax) end
 
 --- Returns the substring of s starting at i and ending at j.
 --- @param s string
@@ -127,12 +133,14 @@ function utf8.escape(s) end
 
 --- Converts UTF-8 character position n to byte position, also returning the
 --- code point at the resulting position. Assumes s is valid UTF-8.
+--- With one optional argument it is n; with two optional arguments they are
+--- i (byte position) and n (character count after i).
 --- @param s string
---- @param n integer
 --- @param i? integer
+--- @param n? integer
 --- @return integer position
 --- @return integer codepoint
-function utf8.charpos(s, n, i) end
+function utf8.charpos(s, i, n) end
 
 --- Iterates through s: returns the byte position of the next character after
 --- i (or the n-th character), plus its code point. With only s given, usable

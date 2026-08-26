@@ -46,7 +46,7 @@ typedef enum ud_Reason {
 typedef struct canon_cls_table {
     utfint first;
     utfint last;
-    unsigned int canon_cls;
+    int canon_cls;
 } canon_cls_table;
 
 typedef struct combine_table {
@@ -60,7 +60,7 @@ typedef struct decompose_table {
     utfint cp;
     utfint to1;
     utfint to2;
-    unsigned int canon_cls2;
+    int canon_cls2;
 } decompose_table;
 
 #define HANGUL_L 1

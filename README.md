@@ -59,6 +59,10 @@ Many routines are the same as Lua's string module:
 
 The documentation of these functions can be found in the Lua manual[3].
 
+Note: `utf8.len` and `utf8.reverse` also accept an optional trailing `lax`
+boolean (an extension): when true, invalid UTF-8 sequences are processed
+leniently instead of raising an error.
+
 [3]: https://www.lua.org/manual/5.4/manual.html#6.5
 
 
@@ -75,6 +79,10 @@ Some routines are for compatibility with Lua's basic UTF-8 support library:
 - `utf8.codes`
 
 See the Lua manual[3] for usage.
+
+`utf8.codepoint` and `utf8.codes` also accept Lua's optional `lax` boolean
+argument: when true, invalid code points/sequences are returned or skipped
+instead of raising an error.
 
 Some routines are new, providing Unicode-specific functions:
 
@@ -99,9 +107,15 @@ print(u"%123%u123%{123}%u{123}%xABC%x{ABC}")
 print(u"%%123%?%d%%u")
 ```
 
-### `utf8.charpos(s [[, i], n]) --> position, codepoint`
+### `utf8.charpos(s [, n]) --> position, codepoint`
 
-Converts UTF-8 character position `n` to byte offset `position`. If only `n` is given, returns the byte position where the encoding of the `n`-th character of `s` starts (counting from position 1). If both `i` and `n` are given, returns the byte position where the encoding of the `n`-th character after byte position `i` starts. A negative `n` gets characters before position `i`.
+### `utf8.charpos(s, i, n) --> position, codepoint`
+
+Converts UTF-8 character position `n` to byte offset `position`.
+
+- `utf8.charpos(s)` — returns the position of the first character.
+- `utf8.charpos(s, n)` — returns the byte position where the encoding of the `n`-th character of `s` starts (counting from position 1). A negative `n` counts from the end.
+- `utf8.charpos(s, i, n)` — returns the byte position of the `n`-th character after byte position `i`. A negative `n` gets characters before position `i`.
 
 Also returns the code point at the resulting position.
 

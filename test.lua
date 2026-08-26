@@ -1,4 +1,5 @@
 local utf8 = require 'lua-utf8'
+--- @diagnostic disable-next-line: deprecated
 local unpack = unpack or table.unpack
 local E = utf8.escape
 
@@ -8,7 +9,7 @@ end
 
 local function assert_error(f, msg)
    local s, e = pcall(f)
-   return assert(not s and e:match(msg))
+   return assert(not s and assert(e):match(msg))
 end
 
 local t = { 20985, 20984, 26364, 25171, 23567, 24618, 20861 }
@@ -111,7 +112,7 @@ assert(utf8.remove("abcdef", 200, 100) == "abcdef")
 do
    local s = E "a%255bc"
    assert(utf8.len(s, 4))
-   assert(string.len(s, 6))
+   assert(string.len(s) == 5)
    assert(utf8.charpos(s) == 1)
    assert(utf8.charpos(s, 0) == 1)
    assert(utf8.charpos(s, 1) == 1)
@@ -168,7 +169,7 @@ end
 local function assert_fail(f, patt)
    local ok, msg = pcall(f)
    assert(not ok)
-   assert(msg:match(patt), msg)
+   assert(assert(msg):match(patt), msg)
 end
 do
    local s = "नमस्ते"
@@ -258,8 +259,10 @@ do
    assert(utf8.width(E '%x{200B}', nil, nil, 1, 4) == 4) -- with custom default width
 
    -- Type errors
+   --- @diagnostic disable-next-line: param-type-mismatch
    assert_fail(function() utf8.width(true) end,
       "number/string expected, got boolean")
+   --- @diagnostic disable-next-line: param-type-mismatch
    assert_fail(function() utf8.width(nil) end,
       "number/string expected, got nil")
 end
@@ -483,8 +486,8 @@ for _, good in ipairs(good_strings) do
 end
 
 assert(utf8.invalidoffset("\255") == 1)
-assert(utf8.invalidoffset("\240\128\128\128") == 1)  -- overlong 4-byte
-assert(utf8.invalidoffset("\244\144\128\128") == 1)  -- > U+10FFFF
+assert(utf8.invalidoffset("\240\128\128\128") == 1) -- overlong 4-byte
+assert(utf8.invalidoffset("\244\144\128\128") == 1) -- > U+10FFFF
 assert(utf8.invalidoffset("\255", 0) == 1)
 assert(utf8.invalidoffset("\255", 1) == 1)
 assert(utf8.invalidoffset("\255", 2) == nil)
@@ -527,7 +530,7 @@ end
 -- This is an official set of test cases for Unicode normalization
 -- Provided by the Unicode Consortium
 local normalization_test_cases = {}
-local f = io.open('NormalizationTest.txt', 'r')
+local f = assert(io.open('NormalizationTest.txt', 'r'))
 for line in f:lines() do
    if not line:match("^#") and not line:match("^@") then
       local src, nfc, nfd = line:match "([%w%s]+);([%w%s]+);([%w%s]+)"
@@ -608,7 +611,7 @@ assert(utf8.normalize_nfc("\199\155\204\155\204\131\204\155") == "\198\175\204\1
 
 -- Official set of test cases for grapheme cluster segmentation, provided by Unicode Consortium
 local grapheme_test_cases = {}
-f = io.open('GraphemeBreakTest.txt', 'r')
+f = assert(io.open('GraphemeBreakTest.txt', 'r'))
 for line in f:lines() do
    if not line:match("^#") and not line:match("^@") then
       local line = line

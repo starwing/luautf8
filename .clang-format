@@ -295,8 +295,8 @@ StatementAttributeLikeMacros:
 StatementMacros:
   - Q_UNUSED
   - QT_REQUIRE_VERSION
-  - utf8_categories
-  - utf8_converters
+  - lu_categories
+  - lu_converters
 TableGenBreakInsideDAGArg: DontBreak
 TabWidth: 8
 UseTab: Never

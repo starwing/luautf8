@@ -38,9 +38,9 @@ local function parse_UnicodeData()
     local last_data
 
     for line in io.lines() do
-        local cp, name, gc, canon_cls, bidi_class, decomposition, _, _, _, _, _, _, um, lm, tm = line:match(patt)
-        assert(cp, line)
-        cp = tonumber(cp, 16)
+        local scp, name, gc, canon_cls, bidi_class, decomposition, _, _, _, _, _, _, um, lm, tm = line:match(patt)
+        assert(scp, line)
+        local cp = tonumber(scp, 16)
         lm = lm ~= "" and tonumber(lm, 16)
         um = um ~= "" and tonumber(um, 16)
         tm = tm ~= "" and tonumber(tm, 16)
@@ -93,17 +93,16 @@ local function parse_EastAsianWidth()
     for ln in io.lines() do
         local line = ln:gsub("%s*%#.*$", "")
         if line ~= "" then
-            local first, last, mark
-            first, mark = line:match "^(%x+)%s*%;%s*(%w+)$"
-            if first then
-                last = first
+            local sfirst, slast, mark
+            sfirst, mark = line:match "^(%x+)%s*%;%s*(%w+)$"
+            if sfirst then
+                slast = sfirst
             else
-                first, last, mark = line:match "^(%x+)%.%.(%x+)%s*%;%s*(%w+)$"
-                assert(first, line)
+                sfirst, slast, mark = line:match "^(%x+)%.%.(%x+)%s*%;%s*(%w+)$"
+                assert(sfirst, line)
             end
 
-            first = tonumber(first, 16)
-            last = tonumber(last, 16)
+            local first, last = tonumber(sfirst, 16), tonumber(slast, 16)
 
             if mark == 'W' or mark == 'F' then
                 for i = first, last do
@@ -125,11 +124,11 @@ local function parse_CaseFolding()
     for ln in io.lines() do
         local line = ln:gsub("%s*%#.*$", "")
         if line ~= "" then
-            local cp, class, mcp = line:match "^%s*(%x+)%s*;%s*(%w+)%s*;%s*(%x+)"
-            assert(cp, line)
+            local scp, class, smcp = line:match "^%s*(%x+)%s*;%s*(%w+)%s*;%s*(%x+)"
+            assert(scp, line)
             if class == 'C' or class == 'S' then
-                cp = tonumber(cp, 16)
-                mcp = tonumber(mcp, 16)
+                local cp = tonumber(scp, 16)
+                local mcp = tonumber(smcp, 16)
                 mapping[#mapping + 1] = { cp = cp, mapping = mcp }
             end
         end
@@ -376,7 +375,7 @@ local function write_combine_table(name, tbl)
             local conflicting = dup[hash(cp1, cp2)]
             local cp3, cp4 = table.unpack(conflicting.decomposition)
             error("Hash collision: " ..
-            string.format("%x %x -> %x, %x %x -> %x", cp3, cp4, hash(cp3, cp4), cp1, cp2, hash(cp1, cp2)))
+                string.format("%x %x -> %x, %x %x -> %x", cp3, cp4, hash(cp3, cp4), cp1, cp2, hash(cp1, cp2)))
         end
         dup[hash(cp1, cp2)] = c
     end
@@ -473,7 +472,7 @@ typedef enum ud_Reason {
 typedef struct canon_cls_table {
     utfint first;
     utfint last;
-    unsigned int canon_cls;
+    int canon_cls;
 } canon_cls_table;
 
 typedef struct combine_table {
@@ -487,7 +486,7 @@ typedef struct decompose_table {
     utfint cp;
     utfint to1;
     utfint to2;
-    unsigned int canon_cls2;
+    int canon_cls2;
 } decompose_table;
 
 #define HANGUL_L 1
@@ -675,7 +674,7 @@ do
             io.write(("    { 0x%X, REASON_JAMO_TRAILING, 0, 0 },\n"):format(data.cp))
         else
             error("Don't know why we need to check for codepoint " ..
-            string.format("0x%x", data.cp) .. " when doing NFC normalization")
+                string.format("0x%x", data.cp) .. " when doing NFC normalization")
         end
     end
 
