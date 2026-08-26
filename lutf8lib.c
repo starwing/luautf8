@@ -23,7 +23,7 @@
 /* clang-format off */
 typedef struct lu_Slice { const char *s, *e; } lu_Slice;
 
-static inline lu_Slice lu_newslice(const char *s, size_t len)
+static lu_Slice lu_newslice(const char *s, size_t len)
 { lu_Slice r; assert(s != NULL); return (r.s = s, r.e = s + len), r; }
 
 static int luU_invalidcp(utfint ch)
@@ -46,7 +46,7 @@ static size_t luU_encode(char *buff, utfint x) {
             x >>= 6;
             mfb >>= 1; /* one less bit remains in the first byte */
         } while (x > mfb);
-        buff[LU_BUFFSZ - n] = ((~mfb << 1) | x) & 0xFF;
+        buff[LU_BUFFSZ - n] = (char)(((~mfb << 1) | x) & 0xFF);
     }
     return n;
 }
@@ -429,7 +429,7 @@ static void luN_stableinsert(uint32_t *v, size_t size, size_t i) {
 
 static void luL_addutf8char(luaL_Buffer *b, utfint ch);
 
-static inline void luV_grow(
+static void luV_grow(
         uint32_t **pv, uint32_t *onstack, size_t *size, size_t needed) {
     size_t current_size = *size;
     if (needed >= current_size) {
@@ -1635,6 +1635,7 @@ static int luM_basic(
     case '$':
         if ((p + 1) != ms->p_end) return LU_DFLT;
         *ps = (s == ms->src_end) ? s : NULL;
+        /* FALLTHROUGH */
     default: return LU_OK;
     }
 }
@@ -2162,7 +2163,7 @@ static int luN_checkcp(
 /* Scan from 's' to 'e'; return 1 if already NFC, else 0 and set *starter_p */
 static int luN_scan(lua_State *L, lu_Slice *v, utfint *st, int *pc) {
     const char *np, *p = v->s, *e = v->e;
-    utfint      ch;
+    utfint      ch = 0;
     int         cc;
     for (; p < e; p = np) {
         np = luU_decode(p, &ch, 1);
