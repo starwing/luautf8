@@ -6,7 +6,7 @@ This module adds UTF-8 support to Lua.
 
 It uses data extracted from the
 [Unicode Character Database](http://www.unicode.org/reports/tr44/),
-and is tested on Lua 5.2.3, Lua 5.3.0, Lua 5.4.8 and LuaJIT.
+and is tested on Lua 5.1 through 5.5 and LuaJIT (see the CI matrix).
 
 `parseucd.lua` is a pure Lua script that generates `unidata.h` to support
 character conversion and category checking.
@@ -374,6 +374,47 @@ for from, to in utf8.grapheme_indices(s) do
   count = count + 1
 end
 ```
+
+## v0.3.0 Changes
+
+### Unicode 17.0.0
+
+- `unidata.h` is generated from Unicode 17.0.0: NFC, case folding, categories,
+  East Asian width and grapheme cluster data are updated.
+- NFC conversion now handles `NFC_QC=Maybe` characters whose canonical
+  decomposition can recompose with the surrounding context, for example
+  `U+113C5` (TULU-TIGALARI VOWEL SIGN AI) and `U+16121`–`U+16128`
+  (GURUNG KHEMA). These characters are NFC on their own and are now only
+  decomposed when the context actually recomposes them.
+- `utf8.isnfc` and `utf8.normalize_nfc` now use the same scan, and the second
+  result of `utf8.normalize_nfc` always agrees with `utf8.isnfc(s)`.
+
+### Behavior changes
+
+- `utf8.escape` now raises an error for malformed escapes (a trailing `%`,
+  `%x`/`%u` without digits, or an unclosed `%{...}`) instead of silently
+  producing NUL bytes or accepting malformed input. This is a breaking change
+  for code that relied on the old lenient behavior.
+- `utf8.gmatch` and `utf8.gsub` now follow Lua 5.5's empty-match semantics on
+  every supported Lua version: an empty match at the end position of the
+  previous match is skipped. This fixes the extra empty matches reported in
+  issue #64. On Lua 5.1–5.4 hosts this can differ from that host's
+  `string.gmatch`/`string.gsub`, which still use the older semantics; the
+  behavior is intentionally unified.
+- `utf8.gsub` now handles `nil`/`false` returns from replacement
+  functions/tables consistently with Lua 5.5: the original text is kept and
+  the substitution count is correct.
+
+### Other
+
+- Added `lua-utf8.d.lua` type definitions for LuaLS.
+- `unidata.h` can be compiled with `-DUD_STATIC` to keep the Unicode tables
+  private to the translation unit.
+- Fixed MSVC 2026 conversion warnings and a missing `<limits.h>` include.
+
+> Note: 0.2.1 was published through LuaRocks only (no GitHub release). It
+> added Lua 5.5 support and fixed several `utf8.widthindex` / `utf8.char`
+> edge cases; those changes are included in 0.3.0.
 
 ## v0.2.0 BREAKING CHANGES
 
