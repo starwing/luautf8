@@ -318,6 +318,29 @@ static decompose_table *luN_decompose(utfint ch) {
     return NULL;
 }
 
+/* A starter which decomposes to two starters, e.g. U+113C5 */
+static int luN_isbothstarters(nfc_table *entry) {
+    /* data2 of the _1 reasons holds a canonical class, not a codepoint */
+    return entry
+        && (entry->reason == REASON_MUST_CONVERT_2
+            || entry->reason == REASON_MAYBE_CONVERT_2)
+        && !luN_findcanon(entry->data1) && !luN_findcanon(entry->data2);
+}
+
+/* Flatten the decomposition of ch into out; returns the new piece count. */
+static int luN_flat(utfint ch, utfint *out, int n) {
+    nfc_table *entry = luN_quickcheck(ch);
+    if (luN_isbothstarters(entry))
+        return luN_flat(entry->data2, out, luN_flat(entry->data1, out, n));
+    return assert(n < LU_BUFFSZ), (out[n++] = ch), n;
+}
+
+/* The first codepoint of the flattened decomposition of ch */
+static utfint luN_firstpiece(utfint ch) {
+    nfc_table *entry = luN_quickcheck(ch);
+    return luN_isbothstarters(entry) ? luN_firstpiece(entry->data1) : ch;
+}
+
 static int luC_mark(utfint ch, utfint starter, int cc, int prevcc) {
     decompose_table *decomp, *decomp2;
     if (cc <= prevcc) return 1;
@@ -340,6 +363,9 @@ static int luC_check(
     switch (entry->reason) {
     case REASON_MUST_CONVERT_1:
     case REASON_MUST_CONVERT_2: return 0;
+    case REASON_MAYBE_CONVERT_1:
+    case REASON_MAYBE_CONVERT_2: /* only a composing context changes it */
+        return prevcc || !luN_combine(starter, luN_firstpiece(ch), NULL);
     case REASON_STARTER_CAN_COMBINE:
         return prevcc || !luN_combine(starter, ch, NULL);
     case REASON_COMBINING_MARK: return luC_mark(ch, starter, cc, prevcc);
@@ -458,11 +484,18 @@ typedef struct lu_NFC {
     const char  *s, *e, *to_copy;
     utfint       starter, ch;
     int          canon_cls, prev_canon_cls, fixedup;
-    uint32_t     onstack[8];
+    uint32_t     onstack[LU_BUFFSZ];
     size_t       vec_size, vec_max;
     uint32_t    *vector;
     nfc_table   *entry;
+    utfint       pend[LU_BUFFSZ];
+    int          npend, has_virtual;
 } lu_NFC;
+
+/* clang-format off */
+static void luN_free(lu_NFC *ctx)
+{ if (ctx->vector != ctx->onstack) free(ctx->vector); }
+/* clang-format on */
 
 /* Sort accumulated combining marks if they are out of canonical order. */
 static void luN_sort(lu_NFC *ctx) {
@@ -561,6 +594,9 @@ static int luN_fixone(lu_NFC *ctx, size_t i) {
     case REASON_MUST_CONVERT_1: return luN_fixmust1(ctx, i);
     case REASON_MUST_CONVERT_2: return luN_fixmust2(ctx, i);
     case REASON_COMBINING_MARK: return luN_fix(ctx, i);
+    /* MAYBE ones are starters, so they never reach the combining run */
+    case REASON_MAYBE_CONVERT_1:
+    case REASON_MAYBE_CONVERT_2: return 0;
     default: return 0;
     }
 }
@@ -645,17 +681,11 @@ static void luN_splitconvert(
         conv1 = conv_entry->data1;
         conv2 = conv_entry->data2;
         cc2 = luN_findcanon(conv2);
-        if (cc2) {
-            ctx->starter = conv1;
-            ctx->vector[0] = (conv2 << 8) | cc2;
-            ctx->vector[1] = (conv3 << 8) | cc3;
-            ctx->vec_size = 2;
-        } else {
-            luL_addutf8char(ctx->buff, conv1);
-            ctx->starter = conv2;
-            ctx->vector[0] = (conv3 << 8) | cc3;
-            ctx->vec_size = 1;
-        }
+        assert(cc2); /* conv2 is the second piece of a two-mark conversion */
+        ctx->starter = conv1;
+        ctx->vector[0] = (conv2 << 8) | cc2;
+        ctx->vector[1] = (conv3 << 8) | cc3;
+        ctx->vec_size = 2;
         ctx->canon_cls = cc3;
     } else {
         ctx->starter = conv1;
@@ -680,18 +710,24 @@ static void luN_convertstarter(lu_NFC *ctx) {
     conv1 = ctx->entry->data1;
     conv2 = ctx->entry->data2;
     cc2 = luN_findcanon(conv2);
-    if (!cc2) {
-        luL_addutf8char(ctx->buff, conv1);
-        ctx->starter = conv2;
-        ctx->fixedup = 1;
-        return;
-    }
+    assert(cc2); /* the second piece is always a combining mark */
     luN_splitconvert(ctx, conv1, conv2, cc2, cc2);
+}
+
+/* Replace a starter by its decomposition pieces; the rest are queued. */
+static void luN_expand(lu_NFC *ctx) {
+    utfint out[LU_BUFFSZ];
+    int    i, n = luN_flat(ctx->ch, out, 0);
+    for (i = n - 1; i > 0; --i) ctx->pend[ctx->npend++] = out[i];
+    ctx->ch = out[0];
+    ctx->entry = luN_quickcheck(ctx->ch);
+    ctx->has_virtual = 1;
 }
 
 /* Handle a starter codepoint; returns 1 to continue, 2 when finished. */
 static int luN_starter(lu_NFC *ctx, const char *new_s) {
     ctx->entry = luN_quickcheck(ctx->ch);
+    if (luN_isbothstarters(ctx->entry)) luN_expand(ctx);
     if (luN_splitstarter(ctx, new_s)) return 1;
     if (ctx->prev_canon_cls) {
         if (luN_process(ctx)) return 2;
@@ -700,36 +736,41 @@ static int luN_starter(lu_NFC *ctx, const char *new_s) {
     }
     ctx->starter = ctx->ch;
     ctx->to_copy = ctx->s;
-    luN_convertstarter(ctx);
-    return 0;
+    /* A queued piece has no source text, so never copy verbatim */
+    if (ctx->has_virtual) ctx->fixedup = 1;
+    return luN_convertstarter(ctx), 0;
 }
 
 static void luN_init(lu_NFC *c, lua_State *L, luaL_Buffer *b, lu_Slice v) {
     c->L = L;
     c->buff = b;
-    c->s = v.s;
-    c->e = v.e;
+    c->s = v.s, c->e = v.e;
     c->to_copy = v.s;
-    c->starter = (utfint)-1;
-    c->ch = 0;
-    c->canon_cls = 0;
-    c->prev_canon_cls = 0;
+    c->starter = (utfint)-1, c->ch = 0;
+    c->canon_cls = 0, c->prev_canon_cls = 0;
     c->fixedup = 0;
     c->vec_size = 0;
     c->vec_max = sizeof(c->onstack) / sizeof(uint32_t);
-    c->vector = c->onstack;
-    c->entry = NULL;
+    c->vector = c->onstack, c->entry = NULL;
+    c->npend = 0, c->has_virtual = 0;
 }
 
-static void luN_free(lu_NFC *ctx) {
-    if (ctx->vector != ctx->onstack) free(ctx->vector);
+/* Next codepoint to process; returns 0 at the end of the input */
+static int luN_next(lu_NFC *ctx, const char **new_s) {
+    if (ctx->npend) {
+        ctx->ch = ctx->pend[--ctx->npend];
+        *new_s = ctx->s;
+        return (ctx->has_virtual = 1), 1;
+    }
+    if (ctx->s >= ctx->e) return 0;
+    *new_s = luU_decode(ctx->s, &ctx->ch, 1), assert(*new_s != NULL);
+    return (ctx->has_virtual = 0), 1;
 }
 
 static void luN_run(lu_NFC *ctx) {
-    int r;
-    while (ctx->s < ctx->e) {
-        const char *new_s = luU_decode(ctx->s, &ctx->ch, 1);
-        assert(new_s != NULL);
+    int         r;
+    const char *new_s;
+    while (luN_next(ctx, &new_s)) {
         ctx->canon_cls = luN_findcanon(ctx->ch);
         if (!ctx->canon_cls) {
             r = luN_starter(ctx, new_s);
@@ -812,10 +853,10 @@ lu_categories(X)
         return luT_convert(                                          \
                 to##name##_table, lu_tabsize(to##name##_table), ch); \
     }
-        lu_converters(X)
+lu_converters(X)
 #undef X
 
-                static int luT_isgraph(utfint ch) {
+static int luT_isgraph(utfint ch) {
     if (luT_find(space_table, lu_tabsize(space_table), ch)) return 0;
     if (luT_find(graph_table, lu_tabsize(graph_table), ch)) return 1;
     if (luT_find(compose_table, lu_tabsize(compose_table), ch)) return 1;
@@ -1033,10 +1074,9 @@ static int Lutf8_char(lua_State *L) {
 lu_converters(X)
 #undef X
 
-        /* unicode extra interface */
+/* unicode extra interface */
 
-        static void luE_parse(
-                lua_State *L, lu_Slice *sl, int hex, utfint *pch) {
+static void luE_parse(lua_State *L, lu_Slice *sl, int hex, utfint *pch) {
     const char *s = sl->s, *e = sl->e;
     utfint      code = 0;
     int         in_bracket = 0, closed = 0, digits = 0;
@@ -1468,11 +1508,9 @@ static int luM_class(utfint c, utfint cl) {
     switch (lu_tolower(cl)) {
 #define X(cls, name) \
     case cls: res = luT_is##name(c); break;
-    lu_categories(X)
+        lu_categories(X)
 #undef X
-            case 'g':
-        res = luT_isgraph(c);
-        break;
+    case 'g': res = luT_isgraph(c); break;
     case 'w': res = luT_isalnum(c); break;
     case 'z': res = (c == 0); break; /* deprecated option */
     default: return (cl == c);
@@ -2176,24 +2214,10 @@ static int luN_scan(lua_State *L, lu_Slice *v, utfint *st, int *pc) {
 }
 
 static int Lutf8_isnfc(lua_State *L) {
-    lu_Slice    sl = lu_checkslice(L, 1);
-    const char *e = sl.e, *s = sl.s;
-    utfint      starter = 0, ch;
-    int         prevcc = 0, cc;
-    while (s < e) {
-        s = luU_decode(s, &ch, 1);
-        luaL_argcheck(L, (s != NULL), 1, "string is not valid UTF-8");
-        if (ch < 0x300) {
-            starter = ch, prevcc = 0; /* Fast path */
-            continue;
-        }
-        cc = luN_findcanon(ch);
-        if (!luN_checkcp(ch, luN_quickcheck(ch), starter, cc, prevcc))
-            return lua_pushboolean(L, 0), 1;
-        prevcc = cc;
-        if (!cc) starter = ch;
-    }
-    return lua_pushboolean(L, 1), 1;
+    lu_Slice sl = lu_checkslice(L, 1);
+    utfint   starter = 0;
+    int      prevcc = 0;
+    return lua_pushboolean(L, luN_scan(L, &sl, &starter, &prevcc)), 1;
 }
 
 static int Lutf8_normalize_nfc(lua_State *L) {

@@ -210,7 +210,7 @@ local function parse_HangulSyllableType()
 end
 
 local function parse_NormalizationProps(prop, ucd)
-    local codepoints = {}
+    local codepoints, values = {}, {}
 
     for line in io.lines() do
         local cps, property, tail = line:match "^([%x%.]+)%s*;%s*([%w%_]+)(.*)$"
@@ -225,12 +225,13 @@ local function parse_NormalizationProps(prop, ucd)
 
             for cp = from, to, 1 do
                 codepoints[#codepoints + 1] = cp
+                values[cp] = value
             end
         end
     end
 
     table.sort(codepoints)
-    return codepoints
+    return codepoints, values
 end
 
 local function get_ranges(list, func)
@@ -462,6 +463,8 @@ typedef struct nfc_table {
 typedef enum ud_Reason {
     REASON_MUST_CONVERT_1,
     REASON_MUST_CONVERT_2,
+    REASON_MAYBE_CONVERT_1,
+    REASON_MAYBE_CONVERT_2,
     REASON_STARTER_CAN_COMBINE,
     REASON_COMBINING_MARK,
     REASON_JAMO_VOWEL,
@@ -653,16 +656,21 @@ do
     io.write("UD_STATIC struct nfc_table nfc_quickcheck_table[] = {\n")
 
     io.input "UCD/DerivedNormalizationProps.txt"
-    for _, cp in ipairs(parse_NormalizationProps('NFC_QC', ucd)) do
+    local qc_list, qc_values = parse_NormalizationProps('NFC_QC', ucd)
+    for _, cp in ipairs(qc_list) do
         local data = get_ucd(cp, ucd)
         local decomp = data.decomposition
         if decomp then
+            -- NFC_QC=M characters are NFC on their own, so they need their own
+            -- reason instead of being confused with the NFC_QC=N ones.
+            local value = qc_values[cp] == 'M' and "MAYBE" or "MUST"
             if #decomp == 1 then
                 local decomp_data = get_ucd(decomp[1], ucd)
-                io.write(("    { 0x%X, REASON_MUST_CONVERT_1, 0x%X, %d },\n"):format(data.cp, decomp[1],
+                io.write(("    { 0x%X, REASON_%s_CONVERT_1, 0x%X, %d },\n"):format(data.cp, value, decomp[1],
                     decomp_data.canon_cls))
             else
-                io.write(("    { 0x%X, REASON_MUST_CONVERT_2, 0x%X, 0x%X },\n"):format(data.cp, decomp[1], decomp[2]))
+                io.write(("    { 0x%X, REASON_%s_CONVERT_2, 0x%X, 0x%X },\n"):format(data.cp, value, decomp[1],
+                    decomp[2]))
             end
         elseif data.canon_cls ~= 0 then
             io.write(("    { 0x%X, REASON_COMBINING_MARK, 0, 0 },\n"):format(data.cp))

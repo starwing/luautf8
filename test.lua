@@ -571,10 +571,18 @@ assert(utf8.isnfc("\196\148\204\162\204\167"))
 assert(not utf8.isnfc("\199\154\204\164"))
 
 -- test normalize_nfc
+-- The second result tells whether the input already was NFC, so it must agree
+-- with isnfc() for every case, including the ones that need no conversion.
 for _, case in ipairs(normalization_test_cases) do
-   assert(utf8.normalize_nfc(case.src) == case.nfc)
-   assert(utf8.normalize_nfc(case.nfc) == case.nfc)
-   assert(utf8.normalize_nfc(case.nfd) == case.nfc)
+   local result, was_nfc = utf8.normalize_nfc(case.src)
+   assert(result == case.nfc)
+   assert(was_nfc == utf8.isnfc(case.src))
+   result, was_nfc = utf8.normalize_nfc(case.nfc)
+   assert(result == case.nfc)
+   assert(was_nfc and utf8.isnfc(case.nfc))
+   result, was_nfc = utf8.normalize_nfc(case.nfd)
+   assert(result == case.nfc)
+   assert(was_nfc == utf8.isnfc(case.nfd))
 end
 
 -- Regression tests:
@@ -612,6 +620,38 @@ assert(utf8.normalize_nfc("\199\160\205\129\204\168") == "\196\132\204\135\204\1
 -- Fixing another issue with ordering of combining marks after a codepoint decomposes
 -- to a starter followed by 1 or 2 combining marks:
 assert(utf8.normalize_nfc("\199\155\204\155\204\131\204\155") == "\198\175\204\155\204\136\204\128\204\131")
+
+-- Regression tests: characters with NFC_QC=Maybe (Unicode 17.0).  They are
+-- already NFC on their own, so they must only be decomposed when the context
+-- recomposes them, and must never be reported as "not NFC" in isolation.
+local maybe_cps = { 0x113C5, 0x113C7, 0x113C8, 0x16121, 0x16122, 0x16123,
+   0x16124, 0x16125, 0x16126, 0x16127, 0x16128, 0x16D68 }
+for _, cp in ipairs(maybe_cps) do
+   local s = utf8.char(cp)
+   local nfc_result, nfc_was = utf8.normalize_nfc(s)
+   assert(utf8.isnfc(s))
+   assert(nfc_result == s)
+   assert(nfc_was) -- must not claim that the input was not NFC
+end
+-- A preceding starter may combine with the first decomposition piece ...
+assert(utf8.normalize_nfc(utf8.char(0x1611E, 0x16123)) == utf8.char(0x16126))
+assert(utf8.normalize_nfc(utf8.char(0x1138B, 0x113C5)) == utf8.char(0x1138E, 0x113C2))
+-- ... and then the remaining piece becomes a starter of its own
+assert(utf8.normalize_nfc(utf8.char(0x113C2, 0x113C5)) == utf8.char(0x113C5, 0x113C2))
+assert(utf8.normalize_nfc(utf8.char(0x1611E, 0x16121)) == utf8.char(0x16121, 0x1611E))
+-- The first piece of U+16126 is U+16121, so the decomposition is recursive
+assert(utf8.normalize_nfc(utf8.char(0x1611E, 0x16126)) == utf8.char(0x16121, 0x16123))
+assert(not utf8.isnfc(utf8.char(0x1611E, 0x16123)))
+-- NFC_QC=N characters must still be decomposed
+assert(utf8.normalize_nfc(utf8.char(0x0F43)) == utf8.char(0x0F42, 0x0FB7))
+assert(not utf8.isnfc(utf8.char(0x0F43)))
+-- The second result of normalize_nfc must describe the actual input
+local nfc_result, nfc_was = utf8.normalize_nfc(utf8.char(0x61, 0x301))
+assert(nfc_result == utf8.char(0xE1))
+assert(not nfc_was)
+nfc_result, nfc_was = utf8.normalize_nfc("abc")
+assert(nfc_result == "abc")
+assert(nfc_was)
 
 
 -- Official set of test cases for grapheme cluster segmentation, provided by Unicode Consortium
