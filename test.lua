@@ -385,6 +385,15 @@ assert_fail(function() utf8.gsub("a", ".", function() return {} end) end,
 assert_fail(function() utf8.gsub("a", ".", "%z") end,
    "invalid use of '%%' in replacement string")
 assert(utf8.find("abcabc", "ab", -10) == 1)
+-- init before the subject start is clamped to 1, like string.find
+do
+   local s, e = utf8.find("abcabc", "a.", -10)
+   assert(s == 1 and e == 2)
+   s, e = utf8.find("ab", "x*", -3)
+   assert(s == 1 and e == 0)
+   s, e = utf8.find("ГГ", "^(.-)", -5)
+   assert(s == 1 and e == 0)
+end
 
 -- test charpattern
 do

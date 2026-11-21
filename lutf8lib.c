@@ -1941,7 +1941,7 @@ static int luM_find(lua_State *L, int find) {
     init = luU_relat(lu_newslice(s, es - s), (int)idx);
     if (init == NULL) {
         if (idx > 0) return lua_pushnil(L), 1;
-        init = s;
+        init = s, idx = 1; /* start before the subject: clamp to 1 */
     }
     ms.L = L;
     ms.matchdepth = LU_MAXCCALLS;
