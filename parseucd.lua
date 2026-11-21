@@ -544,7 +544,7 @@ do
     ranges("pictographic", "Extended_Pictographic")
 
     io.input "UCD/auxiliary/GraphemeBreakProperty.txt"
-    ranges("cntrl", "Control")
+    ranges("gb_control", "Control")
     io.input "UCD/auxiliary/GraphemeBreakProperty.txt"
     ranges("spacing_mark", "SpacingMark")
 end
@@ -597,9 +597,11 @@ do
             end
         end
     end
+    local cntrl = "Cc Cf"
     local digit = "Nd"
     local alnum_extend = "Nd Nl No"
     local punct = "Sk Sc Sm Pc Pd Ps Pe Pi Pf Po"
+    write_ranges("cntrl", get_ranges(ucd, set(cntrl)))
     write_ranges("digit", get_ranges(ucd, set(digit)))
     write_ranges("alnum_extend", get_ranges(ucd, set(alnum_extend)))
     write_ranges("punct", get_ranges(ucd, set(punct)))

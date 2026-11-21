@@ -1941,7 +1941,7 @@ static int luM_find(lua_State *L, int find) {
     init = luU_relat(lu_newslice(s, es - s), (int)idx);
     if (init == NULL) {
         if (idx > 0) return lua_pushnil(L), 1;
-        init = s;
+        init = s, idx = 1; /* start before the subject: clamp to 1 */
     }
     ms.L = L;
     ms.matchdepth = LU_MAXCCALLS;
@@ -2260,12 +2260,12 @@ static int luG_ctrl(lu_GraphemeCtx *ctx) {
     }
     if (ctx->ch == '\n' || ctx->next_ch == '\r' || ctx->next_ch == '\n')
         return GS_BREAK;
-    if (luT_find(cntrl_table, lu_tabsize(cntrl_table), ctx->ch)
+    if (luT_find(gb_control_table, lu_tabsize(gb_control_table), ctx->ch)
         && !luT_find(prepend_table, lu_tabsize(prepend_table), ctx->ch)
         && ctx->ch != 0x200D
         && !luT_find(compose_table, lu_tabsize(compose_table), ctx->ch))
         return GS_BREAK;
-    if (luT_find(cntrl_table, lu_tabsize(cntrl_table), ctx->next_ch)
+    if (luT_find(gb_control_table, lu_tabsize(gb_control_table), ctx->next_ch)
         && !luT_find(prepend_table, lu_tabsize(prepend_table), ctx->next_ch)
         && !luT_find(compose_table, lu_tabsize(compose_table), ctx->next_ch))
         return GS_BREAK;
