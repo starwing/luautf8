@@ -2535,7 +2535,7 @@ UD_STATIC struct range_table pictographic_table[] = {
     { 0x1FC00, 0x1FFFD, 1 },
 };
 
-UD_STATIC struct range_table cntrl_table[] = {
+UD_STATIC struct range_table gb_control_table[] = {
     { 0x0, 0x9, 1 },
     { 0xB, 0xC, 1 },
     { 0xE, 0x1F, 1 },
@@ -3247,6 +3247,29 @@ UD_STATIC struct type_table indic_table[] = {
     { 0x1F3FB, 0x1F3FF, INDIC_EXTEND },
     { 0xE0020, 0xE007F, INDIC_EXTEND },
     { 0xE0100, 0xE01EF, INDIC_EXTEND },
+};
+
+UD_STATIC struct range_table cntrl_table[] = {
+    { 0x0, 0x1F, 1 },
+    { 0x7F, 0x9F, 1 },
+    { 0xAD, 0x600, 1363 },
+    { 0x601, 0x605, 1 },
+    { 0x61C, 0x6DD, 193 },
+    { 0x70F, 0x890, 385 },
+    { 0x891, 0x8E2, 81 },
+    { 0x180E, 0x200B, 2045 },
+    { 0x200C, 0x200F, 1 },
+    { 0x202A, 0x202E, 1 },
+    { 0x2060, 0x2064, 1 },
+    { 0x2066, 0x206F, 1 },
+    { 0xFEFF, 0xFFF9, 250 },
+    { 0xFFFA, 0xFFFB, 1 },
+    { 0x110BD, 0x110CD, 16 },
+    { 0x13430, 0x1343F, 1 },
+    { 0x1BCA0, 0x1BCA3, 1 },
+    { 0x1D173, 0x1D17A, 1 },
+    { 0xE0001, 0xE0020, 31 },
+    { 0xE0021, 0xE007F, 1 },
 };
 
 UD_STATIC struct range_table digit_table[] = {

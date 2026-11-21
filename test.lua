@@ -183,6 +183,12 @@ end
 
 -- test match
 assert(utf8.match('%c', '') == nil) -- %c does not match U+F000
+-- %c matches every ASCII control, like string patterns (CR and LF too)
+for _, c in ipairs { "\0", "\t", "\n", "\r", "\31", "\127" } do
+   assert(utf8.find(c, "^%c$") == 1)
+   assert(utf8.find(c, "^%C$") == nil)
+end
+assert(utf8.gsub("a\r\nb\n", "%c", "") == "ab")
 
 
 -- test codepoint
